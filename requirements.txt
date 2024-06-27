@@ -1,0 +1,4 @@
+configparser
+requests
+beautifulsoup4
+colorama

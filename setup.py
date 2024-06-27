@@ -1,5 +1,9 @@
 from setuptools import setup, find_packages
 
+def parse_requirements(filename):
+    with open(filename) as f:
+        return f.read().splitlines()
+
 setup(
     name="AtCoderStudyBooster",
     version="0.1",
@@ -9,12 +13,7 @@ setup(
             'atcdr=atcdr.main:main',
         ],
     },
-    install_requires=[
-        'configparser',
-        'requests',
-        'beautifulsoup4',
-        'colorama',
-    ],
+    install_requires=parse_requirements('requirements.txt'),
     include_package_data=True,
     description="A tool to download and manage AtCoder problems.",
     long_description=open('README.md').read(),
