@@ -1,10 +1,10 @@
-# At Coderで問題のHTMLファイルをダウンロードしてフォルダーを作成するスクリプトを作成する. 
 import os
 import re
-import requests
 from dataclasses import dataclass
 from enum import Enum
 from typing import List, Optional
+
+import requests
 
 class Diff(Enum):
     A = 'a'

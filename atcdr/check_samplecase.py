@@ -8,7 +8,6 @@ from enum import Enum
 import resource
 import time
 
-# サードパーティライブラリのimport
 import colorama
 from colorama import Fore, Style
 import tempfile
