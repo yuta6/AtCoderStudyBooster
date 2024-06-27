@@ -54,6 +54,7 @@ def generate_problem_directory(base_path: str, problems: List[Problem]) -> None:
             title = re.search(r'<title>(?:.*?-\s*)?([^<]*)</title>', repaired_html, re.IGNORECASE | re.DOTALL)
             if title:
                 title = title.group(1).replace(" ", "")
+                title = re.sub(r'[\\/*?:"<>| ]', '', title)
             else:
                 title = f"problem{problem.number}"
                 print("[Error] タイトルが取得できませんでした")
