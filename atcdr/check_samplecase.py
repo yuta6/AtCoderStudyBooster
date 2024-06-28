@@ -1,4 +1,4 @@
-from typing import Callable, Dict, List, Union, Optional
+from typing import Callable, Dict, List, Union, Optional,Tuple
 from dataclasses import dataclass
 from bs4 import BeautifulSoup as bs
 import itertools
@@ -143,7 +143,6 @@ def print_result(lcase:LabeledTestCase , result:TestCaseResult)->None :
     print(f"{lcase.label}のテスト")
     # ここを書いてください。色でわかりやすくかいてもらうとありがたいです。
 
-
 def judge_code_from( lcases:List[LabeledTestCase], path:str)-> None :
     runner = choose_lang(path) 
     if runner is None : return 
@@ -168,8 +167,22 @@ def run_test(path:str=None)->None :
     test_cases = parse_html(html)
     judge_code_from(test_cases, path)
 
-if __name__ == "__main__":
-    run_test()
+def test(*paths: Tuple[str, ...]) -> None:
+    if not paths:
+        # 引数がない場合は適当なファイルを使用
+        default_file = "default_file.txt"
+        print(f"Using default file: {default_file}")
+    elif paths == ('*',):
+        pass
+        # 引数が '*' の場合はフォルダー内のすべてのファイルを使用
+    else:
+        # 指定されたファイルを使用
+        print(f"Specified files: {paths}")
 
+def main() :
+    pass
+    
+if __name__ == "__main__":
+    main()
 
 
