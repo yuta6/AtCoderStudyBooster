@@ -43,18 +43,20 @@ def parse_html(html: str) -> List[LabeledTestCase]:
     test_cases = []
 
     for i in range(1,20):
-        sample_input_section = soup.find('h3', text=f'Sample Input {i}').find_next('pre')
-        sample_output_section = soup.find('h3', text=f'Sample Output {i}').find_next('pre')
-        if not sample_input_section or not sample_output_section:
-            break
-
-        sample_input = sample_input_section.get_text(strip=True)
-        sample_output = sample_output_section.get_text(strip=True)
+        sample_input_section = soup.find('h3', text=f'Sample Input {i}')
+        sample_output_section = soup.find('h3', text=f'Sample Output {i}')
+        if not sample_input_section or not sample_output_section: break
+            
+        sample_input_pre = sample_input_section.find_next('pre')
+        sample_output_pre = sample_output_section.find_next('pre')
+        
+        sample_input = sample_input_pre.get_text(strip=True)
+        sample_output = sample_output_pre.get_text(strip=True)
 
         test_case = TestCase(input=sample_input, output=sample_output)
         labeled_test_case = LabeledTestCase(label=f'Sample {i}', case=test_case)
         test_cases.append(labeled_test_case)
-
+    
     return test_cases
 
 def run_code(cmd: list, case: TestCase, memory_limit_kb: int = 256000) -> TestCaseResult:
@@ -163,7 +165,7 @@ def print_result(lcase: LabeledTestCase, result: TestCaseResult) -> None:
 def judge_code_from( lcases:List[LabeledTestCase], path:str)-> None :
     runner = choose_lang(path) 
     if runner is None : return 
-    
+
     print(f"{path}をテストします.\n")
     print("-"*20)
     for lcase in lcases :
