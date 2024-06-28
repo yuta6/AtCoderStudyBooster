@@ -97,9 +97,9 @@ def parse_diff_range(range_str: str) -> List[Diff]:
             return [Diff(chr(i + ord('A'))) for i in range(start_index, end_index + 1)]
     raise ValueError("Invalid Diff range format")
 
-def convert_arg(arg: str) -> Union[List[int], List[Diff]]:
-    if arg.isdigit():
-        return [int(arg)]
+def convert_arg(arg: Union[str,int]) -> Union[List[int], List[Diff]]:
+    if arg is int :
+        return [arg]
     elif arg in Diff.__members__:
         return [Diff[arg]]
     elif re.match(r"^\d+\.\.\d+$", arg):
