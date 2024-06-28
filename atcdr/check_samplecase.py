@@ -4,7 +4,6 @@ from bs4 import BeautifulSoup as bs
 import subprocess
 import os
 from enum import Enum
-import resource
 import time
 
 import colorama
