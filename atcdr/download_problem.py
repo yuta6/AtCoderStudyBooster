@@ -7,12 +7,12 @@ from typing import List, Optional, Union, Callable
 import requests
 
 class Diff(Enum):
-    A = 'a'
-    B = 'b'
-    C = 'c'
-    D = 'd'
-    E = 'e'
-    F = 'f'
+    A = 'A'
+    B = 'B'
+    C = 'C'
+    D = 'D'
+    E = 'E'
+    F = 'F'
 
 @dataclass
 class Problem:
@@ -20,7 +20,7 @@ class Problem:
     difficulty: Diff
 
 def get_problem_html(problem: Problem) -> Optional[str]:
-    url = f"https://atcoder.jp/contests/abc{problem.number}/tasks/abc{problem.number}_{problem.difficulty.value}"
+    url = f"https://atcoder.jp/contests/abc{problem.number}/tasks/abc{problem.number}_{problem.difficulty.value.lower()}"
     response = requests.get(url)
     if response.status_code == 200:
         return response.text
