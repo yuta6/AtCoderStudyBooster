@@ -2,7 +2,7 @@ import os
 import re
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Callable
 
 import requests
 
