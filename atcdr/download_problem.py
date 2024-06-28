@@ -130,11 +130,11 @@ def download(first: str = None, second: str = None, base_path: str = '.') -> Non
     else:
         second_args = convert_arg(str(second))
 
-    problems = [Problem(number, diff) for number in first_args for diff in second_args]
-
     if are_all_integers(first_args) and are_all_diffs(second_args):
+        problems = [Problem(number, diff) for number in first_args for diff in second_args]
         generate_problem_directory(base_path, problems, GenerateMode.gene_path_on_num)
     elif are_all_diffs(first_args) and are_all_integers(second_args):
+        problems = [Problem(number, diff) for diff in first_args for number in second_args]
         generate_problem_directory(base_path, problems, GenerateMode.gene_path_on_diff)
     else:
         raise ValueError("""次のような形式で問題を指定してください
