@@ -98,8 +98,8 @@ def parse_diff_range(range_str: str) -> List[Diff]:
     raise ValueError("Invalid Diff range format")
 
 def convert_arg(arg: Union[str,int]) -> Union[List[int], List[Diff]]:
-    if arg is int :
-        return [arg]
+    if arg.isdigit() :
+        return [int(arg)]
     elif arg in Diff.__members__:
         return [Diff[arg]]
     elif re.match(r"^\d+\.\.\d+$", arg):
@@ -115,6 +115,7 @@ def are_all_diffs(args: List[Union[int, Diff]]) -> bool:
     return all(isinstance(arg, Diff) for arg in args)
 
 def download(first: str = None, second: str = None, base_path: str = '.') -> None:
+    first, second= str(first), str(second)
     if first is None:
         main()
         return
