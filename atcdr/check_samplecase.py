@@ -45,7 +45,7 @@ def parse_html(html: str) -> List[LabeledTestCase]:
         sample_input_section = soup.find('h3', text=f'Sample Input {i}')
         sample_output_section = soup.find('h3', text=f'Sample Output {i}')
         if not sample_input_section or not sample_output_section: break
-            
+        
         sample_input_pre = sample_input_section.find_next('pre')
         sample_output_pre = sample_output_section.find_next('pre')
         
@@ -85,20 +85,23 @@ def run_code(cmd: list, case: TestCase) -> TestCaseResult:
 def run_python(path: str, case: TestCase) -> TestCaseResult:
     return run_code(['python3', path], case)
 
-def run_cpp(path: str, case: TestCase) -> TestCaseResult:
+def run_javascript(path: str, case: TestCase) -> TestCaseResult:
+    return run_code(['node', path], case)
+
+def run_c(path: str, case: TestCase) -> TestCaseResult:
     with tempfile.NamedTemporaryFile(delete=True) as tmp:
         exec_path = tmp.name
-        compile_result = subprocess.run(['g++', path, '-o', exec_path], capture_output=True, text=True)
+        compile_result = subprocess.run(['gcc', path, '-o', exec_path], capture_output=True, text=True)
         if compile_result.returncode != 0:
             return TestCaseResult(output=compile_result.stderr, executed_time=None, passed=ResultStatus.CE)
         if compile_result.stderr:
             print(f"コンパイラーからのメッセージ\n{compile_result.stderr}")
         return run_code([exec_path], case)
 
-def run_c(path: str, case: TestCase) -> TestCaseResult:
+def run_cpp(path: str, case: TestCase) -> TestCaseResult:
     with tempfile.NamedTemporaryFile(delete=True) as tmp:
         exec_path = tmp.name
-        compile_result = subprocess.run(['gcc', path, '-o', exec_path], capture_output=True, text=True)
+        compile_result = subprocess.run(['g++', path, '-o', exec_path], capture_output=True, text=True)
         if compile_result.returncode != 0:
             return TestCaseResult(output=compile_result.stderr, executed_time=None, passed=ResultStatus.CE)
         if compile_result.stderr:
@@ -127,16 +130,13 @@ def run_java(path: str, case: TestCase) -> TestCaseResult:
         if os.path.exists(class_path):
             os.remove(class_path)
 
-def run_javascript(path: str, case: TestCase) -> TestCaseResult:
-    return run_code(['node', path], case)
-
 LANGUAGE_RUNNERS: Dict[str, Callable[[str, TestCase], TestCaseResult]] = {
     '.py': run_python,
-    '.cpp': run_cpp,
+    '.js': run_javascript,
     '.c': run_c,
+    '.cpp': run_cpp,
     '.rs': run_rust,
     '.java': run_java,
-    '.js': run_javascript
 }
 
 def choose_lang(path: str) -> Optional[Callable[[str, TestCase], TestCaseResult]]:
