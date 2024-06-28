@@ -142,7 +142,7 @@ LANGUAGE_RUNNERS: Dict[str, Callable[[str, TestCase], TestCaseResult]] = {
 
 def choose_lang(path: str) -> Optional[Callable[[str, TestCase], TestCaseResult]]:
     ext = os.path.splitext(path)[1]
-    return LANGUAGE_RUNNERS[ext] if ext not in LANGUAGE_RUNNERS else None
+    return LANGUAGE_RUNNERS[ext] if ext in LANGUAGE_RUNNERS else None
 
 CHECK_MARK = '\u2713'
 
