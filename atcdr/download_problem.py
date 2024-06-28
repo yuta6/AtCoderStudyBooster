@@ -115,12 +115,11 @@ def are_all_diffs(args: List[Union[int, Diff]]) -> bool:
     return all(isinstance(arg, Diff) for arg in args)
 
 def download(first: str = None, second: str = None, base_path: str = '.') -> None:
-    first, second= str(first), str(second)
     if first is None:
         main()
         return
 
-    first_args = convert_arg(first)
+    first_args = convert_arg(str(first))
     if second is None:
         if are_all_diffs(first_args):
             raise ValueError("""難易度だけでなく, 問題番号も指定してコマンドを実行してください. 
@@ -129,7 +128,7 @@ def download(first: str = None, second: str = None, base_path: str = '.') -> Non
                              """)
         second_args = list(Diff)
     else:
-        second_args = convert_arg(second)
+        second_args = convert_arg(str(second))
 
     problems = [Problem(number, diff) for number in first_args for diff in second_args]
 
