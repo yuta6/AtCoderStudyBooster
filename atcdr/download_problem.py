@@ -26,7 +26,7 @@ def get_problem_html(problem: Problem) -> Optional[str]:
     retry_attempts = 3
     retry_wait = 1  # 1 second
 
-    for attempt in range(retry_attempts):
+    for _ in range(retry_attempts):
         response = requests.get(url)
         if response.status_code == 200:
             return response.text
