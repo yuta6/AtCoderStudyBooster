@@ -1,7 +1,6 @@
 from typing import Callable, Dict, List, Union, Optional,Tuple
 from dataclasses import dataclass
 from bs4 import BeautifulSoup as bs
-import itertools
 import subprocess
 import os
 from enum import Enum
@@ -43,7 +42,7 @@ def parse_html(html: str) -> List[LabeledTestCase]:
     soup = bs(html, 'html.parser')
     test_cases = []
 
-    for i in itertools.count(1):
+    for i in range(1,20):
         sample_input_section = soup.find('h3', text=f'Sample Input {i}').find_next('pre')
         sample_output_section = soup.find('h3', text=f'Sample Output {i}').find_next('pre')
         if not sample_input_section or not sample_output_section:
@@ -161,7 +160,6 @@ def print_result(lcase: LabeledTestCase, result: TestCaseResult) -> None:
     elif result.passed == ResultStatus.MLE:
         print(Fore.YELLOW + f"   [ME] メモリ超過エラー\n   使用メモリ量: {result.memory_usage} KB")
 
-
 def judge_code_from( lcases:List[LabeledTestCase], path:str)-> None :
     runner = choose_lang(path) 
     if runner is None : return 
@@ -172,16 +170,15 @@ def judge_code_from( lcases:List[LabeledTestCase], path:str)-> None :
         result = runner(path, lcase.case)
         print_result(lcase, result)
 
-def run_test(path:str)->None :
-    # TODO; htmlファイルが場合はインターネットから取得する？コンテストのリンクなどを別ファイルにlink.py, link.ini, link.txtなどにまとめる. 
-    html_path = [f for f in os.listdir('.') if f.endswith('.html')]
-    if not html_path: return
+def run_test(path_of_code:str)->None :
+    html_paths = [f for f in os.listdir('.') if f.endswith('.html')]
+    if not html_paths: return
 
-    with open(os.path.join(path, html_path[0]), 'r') as file:
+    with open(html_paths[0], 'r') as file:
         html = file.read()
     
     test_cases = parse_html(html)
-    judge_code_from(test_cases, path)
+    judge_code_from(test_cases, path_of_code)
 
 def list_files_with_extensions(extensions: List[str]) -> List[str]:
     return [f for f in os.listdir('.') if os.path.isfile(f) and os.path.splitext(f)[1] in extensions]
