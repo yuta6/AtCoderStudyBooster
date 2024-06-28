@@ -39,7 +39,6 @@ class TestCaseResult:
     memory_usage: Union[int, None]  # プログラムの実行時のメモリーサイズです. RE, CEなどの場合はNoneになります
     passed: ResultStatus
 
-
 def parse_html(html: str) -> List[LabeledTestCase]:
     soup = bs(html, 'html.parser')
     test_cases = []
@@ -59,17 +58,23 @@ def parse_html(html: str) -> List[LabeledTestCase]:
 
     return test_cases
 
-def run_code(cmd: list, case: TestCase) -> TestCaseResult:
+def run_code(cmd: list, case: TestCase, memory_limit_kb: int = 256000) -> TestCaseResult:
+    def set_memory_limit():
+        resource.setrlimit(resource.RLIMIT_AS, (memory_limit_kb * 1024, memory_limit_kb * 1024))
+
     try:
         start_time = time.time()
-        proc = subprocess.run(cmd, input=case.input, text=True, capture_output=True, timeout=4)
+        proc = subprocess.run(cmd, input=case.input, text=True, capture_output=True, timeout=4, preexec_fn=set_memory_limit)
         end_time = time.time()
 
         execution_time = int((end_time - start_time) * 1000)
         memory_usage = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss // 1024
 
+        if memory_usage > memory_limit_kb:
+            return TestCaseResult(output=f"Memory usage exceeded {memory_limit_kb} KB", executed_time=execution_time, memory_usage=memory_usage, passed=ResultStatus.MLE)
+
         if proc.returncode != 0:
-            return TestCaseResult(output=proc.stderr, executed_time=None, memory_usage=None, passed=ResultStatus.RE)
+            return TestCaseResult(output=proc.stderr, executed_time=None, memory_usage=memory_usage, passed=ResultStatus.RE)
 
         actual_output = proc.stdout.strip()
         expected_output = case.output.strip()
@@ -125,7 +130,6 @@ def run_java(path: str, case: TestCase) -> TestCaseResult:
 def run_javascript(path: str, case: TestCase) -> TestCaseResult:
     return run_code(['node', path], case)
 
-
 LANGUAGE_RUNNERS: Dict[str, Callable[[str, TestCase], TestCaseResult]] = {
     '.py': run_python,
     '.cpp': run_cpp,
@@ -139,24 +143,36 @@ def choose_lang(path: str) -> Optional[Callable[[str, TestCase], TestCaseResult]
     ext = os.path.splitext(path)[1]
     return LANGUAGE_RUNNERS[ext] if ext not in LANGUAGE_RUNNERS else None
 
-def print_result(lcase:LabeledTestCase , result:TestCaseResult)->None :
-    print(f"{lcase.label}のテスト")
-    # ここを書いてください。色でわかりやすくかいてもらうとありがたいです。
+CHECK_MARK = '\u2713'
+
+def print_result(lcase: LabeledTestCase, result: TestCaseResult) -> None:
+    print(f"\n{Fore.CYAN}{lcase.label}のテスト結果:")
+
+    if result.passed == ResultStatus.AC:
+        print(Fore.GREEN + f"   [AC] {CHECK_MARK} パスしました\n   出力:\n{result.output}\n   実行時間: {result.executed_time} ms\n   メモリ使用量: {result.memory_usage} KB")
+    elif result.passed == ResultStatus.WA:
+        print(Fore.RED + f"   [WA] 不正解\n   出力:\n{result.output}\n   期待された出力:\n{lcase.case.output}")
+    elif result.passed == ResultStatus.RE:
+        print(Fore.YELLOW + f"   [RE] ランタイムエラー\n   エラー:\n{result.output}")
+    elif result.passed == ResultStatus.TLE:
+        print(Fore.YELLOW + "   [TLE] タイムアウトエラー")
+    elif result.passed == ResultStatus.CE:
+        print(Fore.YELLOW + f"   [CE] コンパイルエラー\n   エラー:\n{result.output}")
+    elif result.passed == ResultStatus.MLE:
+        print(Fore.YELLOW + f"   [ME] メモリ超過エラー\n   使用メモリ量: {result.memory_usage} KB")
+
 
 def judge_code_from( lcases:List[LabeledTestCase], path:str)-> None :
     runner = choose_lang(path) 
     if runner is None : return 
     
-    print(f"{path}をテストします\n")
+    print(f"{path}をテストします.\n")
+    print("-"*20)
     for lcase in lcases :
         result = runner(path, lcase.case)
         print_result(lcase, result)
 
-def run_test(path:str=None)->None :
-    if path is None:
-        # TODO :pathがない場合は自動で指定する, フォルダー内を検索してテストする, LANGUAGE_RUNNERに該当する拡張子をチェックし, 自動でpathを指定する.
-        return 
-
+def run_test(path:str)->None :
     # TODO; htmlファイルが場合はインターネットから取得する？コンテストのリンクなどを別ファイルにlink.py, link.ini, link.txtなどにまとめる. 
     html_path = [f for f in os.listdir(path) if f.endswith('.html')]
     if not html_path: return
@@ -167,20 +183,39 @@ def run_test(path:str=None)->None :
     test_cases = parse_html(html)
     judge_code_from(test_cases, path)
 
+def list_files_with_extensions(extensions: List[str]) -> List[str]:
+    return [f for f in os.listdir('.') if os.path.isfile(f) and os.path.splitext(f)[1] in extensions]
+
 def test(*paths: Tuple[str, ...]) -> None:
     if not paths:
-        # 引数がない場合は適当なファイルを使用
-        default_file = "default_file.txt"
-        print(f"Using default file: {default_file}")
+        files = list_files_with_extensions(list(LANGUAGE_RUNNERS.keys()))
+        if len(files) == 1:
+            run_test(files[0])
+        elif len(files) > 1:
+            print("複数のファイルが見つかりました。以下のファイルから選択してください:")
+            for i, file in enumerate(files):
+                print(f"{i+1}. {file}")
+            choice = int(input("ファイル番号を入力してください: ")) - 1
+            if 0 <= choice < len(files):
+                run_test(files[choice])
+            else:
+                print("無効な選択です")
+        else:
+            print("テスト可能なファイルが見つかりません")
     elif paths == ('*',):
-        pass
-        # 引数が '*' の場合はフォルダー内のすべてのファイルを使用
+        files = list_files_with_extensions(list(LANGUAGE_RUNNERS.keys()))
+        for file in files:
+            run_test(file)
     else:
-        # 指定されたファイルを使用
-        print(f"Specified files: {paths}")
+        for path in paths:
+            ext = os.path.splitext(path)[1]
+            if ext in LANGUAGE_RUNNERS:
+                run_test(path)
+            else:
+                print(f"エラー: {path}はサポートされていないファイルタイプです")
 
 def main() :
-    pass
+    test()
     
 if __name__ == "__main__":
     main()
