@@ -174,7 +174,7 @@ def judge_code_from( lcases:List[LabeledTestCase], path:str)-> None :
 
 def run_test(path:str)->None :
     # TODO; htmlファイルが場合はインターネットから取得する？コンテストのリンクなどを別ファイルにlink.py, link.ini, link.txtなどにまとめる. 
-    html_path = [f for f in os.listdir(path) if f.endswith('.html')]
+    html_path = [f for f in os.listdir('.') if f.endswith('.html')]
     if not html_path: return
 
     with open(os.path.join(path, html_path[0]), 'r') as file:
