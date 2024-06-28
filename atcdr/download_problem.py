@@ -31,7 +31,7 @@ def get_problem_html(problem: Problem) -> Optional[str]:
         if response.status_code == 200:
             return response.text
         elif response.status_code == 429:
-            print(f"[Error{response.status_code}] 再試行します.")
+            print(f"[Error{response.status_code}] 再試行します. abc{problem.number} {problem.difficulty.value}")
             time.sleep(retry_wait)
         elif 300 <= response.status_code < 400:
             print(f"[Erroe{response.status_code}] リダイレクトが発生しました。abc{problem.number} {problem.difficulty.value}")
