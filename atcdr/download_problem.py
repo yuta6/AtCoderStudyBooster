@@ -54,11 +54,11 @@ def mkdir(path: str) -> None:
 class GenerateMode:
     @staticmethod
     def gene_path_on_diff(base: str, number: int, diff: Diff) -> str:
-        return os.path.join(base, diff.value, str(number))
+        return os.path.join(base, diff.name, str(number))
 
     @staticmethod
     def gene_path_on_num(base: str, number: int, diff: Diff) -> str:
-        return os.path.join(base, str(number), diff.value)
+        return os.path.join(base, str(number), diff.name)
 
 def generate_problem_directory(base_path: str, problems: List[Problem], gene_path: Callable[[str, int, Diff], str]) -> None:
     for problem in problems:
