@@ -1,4 +1,5 @@
 import os
+import time
 import re
 from dataclasses import dataclass
 from enum import Enum, auto
@@ -22,11 +23,28 @@ class Problem:
 def get_problem_html(problem: Problem) -> Optional[str]:
     url = f"https://atcoder.jp/contests/abc{problem.number}/tasks/abc{problem.number}_{problem.difficulty.value.lower()}"
     response = requests.get(url)
-    if response.status_code == 200:
-        return response.text
-    else:
-        print(f"[Error] abc{problem.number} {problem.difficulty.value}に対応するHTMLファイルを取得できませんでした.")
-        return None
+    retry_attempts = 3
+    retry_wait = 1  # 1 second
+
+    for attempt in range(retry_attempts):
+        response = requests.get(url)
+        if response.status_code == 200:
+            return response.text
+        elif response.status_code == 429:
+            print(f"[Error{response.status_code}] 再試行します.")
+            time.sleep(retry_wait)
+        elif 300 <= response.status_code < 400:
+            print(f"[Erroe{response.status_code}] リダイレクトが発生しました。abc{problem.number} {problem.difficulty.value}")
+        elif 400 <= response.status_code < 500:
+            print(f"[Error{response.status_code}] クライアントエラーが発生しました。abc{problem.number} {problem.difficulty.value}")
+            break
+        elif 500 <= response.status_code < 600:
+            print(f"[Error{response.status_code}] サーバーエラーが発生しました。abc{problem.number} {problem.difficulty.value}")
+            break
+        else:
+            print(f"[Error{response.status_code}] abc{problem.number} {problem.difficulty.value}に対応するHTMLファイルを取得できませんでした。")
+            break
+    return None
 
 def repair_html(html: str) -> str:
     html=html.replace('//img.atcoder.jp', 'https://img.atcoder.jp')
