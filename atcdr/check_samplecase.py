@@ -92,6 +92,8 @@ def run_cpp(path: str, case: TestCase) -> TestCaseResult:
         compile_result = subprocess.run(['g++', path, '-o', exec_path], capture_output=True, text=True)
         if compile_result.returncode != 0:
             return TestCaseResult(output=compile_result.stderr, executed_time=None, passed=ResultStatus.CE)
+        if compile_result.stderr:
+            print(f"コンパイラーからのメッセージ\n{compile_result.stderr}")
         return run_code([exec_path], case)
 
 def run_c(path: str, case: TestCase) -> TestCaseResult:
@@ -100,6 +102,8 @@ def run_c(path: str, case: TestCase) -> TestCaseResult:
         compile_result = subprocess.run(['gcc', path, '-o', exec_path], capture_output=True, text=True)
         if compile_result.returncode != 0:
             return TestCaseResult(output=compile_result.stderr, executed_time=None, passed=ResultStatus.CE)
+        if compile_result.stderr:
+            print(f"コンパイラーからのメッセージ\n{compile_result.stderr}")
         return run_code([exec_path], case)
 
 def run_rust(path: str, case: TestCase) -> TestCaseResult:
@@ -108,6 +112,8 @@ def run_rust(path: str, case: TestCase) -> TestCaseResult:
         compile_result = subprocess.run(['rustc', path, '-o', exec_path], capture_output=True, text=True)
         if compile_result.returncode != 0:
             return TestCaseResult(output=compile_result.stderr, executed_time=None, passed=ResultStatus.CE)
+        if compile_result.stderr:
+            print(f"コンパイラーからのメッセージ\n{compile_result.stderr}")
         return run_code([exec_path], case)
 
 def run_java(path: str, case: TestCase) -> TestCaseResult:
@@ -139,22 +145,23 @@ def choose_lang(path: str) -> Optional[Callable[[str, TestCase], TestCaseResult]
     return LANGUAGE_RUNNERS[ext] if ext in LANGUAGE_RUNNERS else None
 
 CHECK_MARK = '\u2713'
+CROSS_MARK = '\u00d7'
 
 def print_result(lcase: LabeledTestCase, result: TestCaseResult) -> None:
-    print(f"{Fore.CYAN}{lcase.label}のテスト結果:")
+    print(f"{Fore.CYAN}{lcase.label} のテスト:")
 
     if result.passed == ResultStatus.AC:
-        print(Fore.GREEN + f"   [AC] {CHECK_MARK} パスしました\n   出力:\n{result.output}\n   実行時間: {result.executed_time} ms\n")
+        print(Fore.GREEN + f"{CHECK_MARK} Accepted !! 実行時間: {result.executed_time} ms\n 出力\n{result.output}\n   ")
     elif result.passed == ResultStatus.WA:
-        print(Fore.RED + f"   [WA] 不正解\n   出力:\n{result.output}\n   期待された出力:\n{lcase.case.output}")
+        print(Fore.RED + f"{CROSS_MARK} Wrong Answer 実行時間: {result.executed_time} ms 出力:\n{result.output}\n   正解の出力:\n{lcase.case.output}")
     elif result.passed == ResultStatus.RE:
-        print(Fore.YELLOW + f"   [RE] ランタイムエラー\n   エラー:\n{result.output}")
+        print(Fore.YELLOW + f"[RE] ランタイムエラー\n{result.output}")
     elif result.passed == ResultStatus.TLE:
-        print(Fore.YELLOW + "   [TLE] タイムアウトエラー")
+        print(Fore.YELLOW + "[TLE] タイムアウトエラー")
     elif result.passed == ResultStatus.CE:
-        print(Fore.YELLOW + f"   [CE] コンパイルエラー\n   エラー:\n{result.output}")
+        print(Fore.YELLOW + f"[CE] コンパイルエラー\n{result.output}")
     elif result.passed == ResultStatus.MLE:
-        print(Fore.YELLOW + f"   [ME] メモリ超過エラー\n ")
+        print(Fore.YELLOW + f"[ME] メモリ超過エラー\n ")
 
 def judge_code_from( lcases:List[LabeledTestCase], path:str)-> None :
     runner = choose_lang(path) 
