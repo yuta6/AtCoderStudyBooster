@@ -1,5 +1,8 @@
 configparser
 requests
 beautifulsoup4
-colorama
 fire
+colorama
+requests_html
+lxml_html_clean
+pyppeteer
