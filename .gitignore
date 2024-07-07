@@ -1,0 +1,15 @@
+# Ignore all files
+*
+
+# But not these extensions
+!*.py
+!*.md
+!requirements.txt
+!.gitignore
+
+# Unignore directories and their contents
+!*/
+
+# Ignore specific directories
+AtCoderStudyBooster.egg-info/
+build/
