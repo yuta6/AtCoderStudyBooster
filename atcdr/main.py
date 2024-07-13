@@ -9,7 +9,9 @@ MAP_COMMANDS = {
     '-t': test,
     '--test': test,
     '-d': download,
-    '--download': download
+    '--download': download,
+    '-h' : lambda: fire.Fire(MAP_COMMANDS),
+    '--help': lambda: fire.Fire(MAP_COMMANDS)
 }
 
 def main():
