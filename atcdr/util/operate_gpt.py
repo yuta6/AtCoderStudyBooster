@@ -1,6 +1,16 @@
 from .by_api import APIChatGPTClient
 from .by_applescript import SafariChatGPTClient
-from .base import BaseChatGPTClient
+from abc import ABC, abstractmethod
+
+class BaseChatGPTClient(ABC):
+    @abstractmethod
+    def send_message(self, message: str) -> None:
+        pass
+
+    @abstractmethod
+    def read_message(self) -> str:
+        pass
+
 class ChatGPTClientFactory:
     @staticmethod
     def create_client(method: str, api_key: str = None) -> BaseChatGPTClient:

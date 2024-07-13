@@ -9,7 +9,7 @@ Safariのタブが閉じられたら, 自動でエラーになるようにする
 
 """
 import subprocess
-from .base import BaseChatGPTClient
+from operate_gpt import BaseChatGPTClient
 from typing import List
 
 class SafariChatGPTClient(BaseChatGPTClient):
