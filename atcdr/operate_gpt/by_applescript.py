@@ -10,29 +10,44 @@ Safariのタブが閉じられたら, 自動でエラーになるようにする
 """
 import subprocess
 from .base import BaseChatGPTClient
+from typing import List
 
 class SafariChatGPTClient(BaseChatGPTClient):
     def __init__(self):
-        self.tabID = self.start_conversation()
+        self.windowID = self.start_conversation()
+        pass
+
         
     def start_conversation(self) -> int:
         CHAT_GPT_URL = "https://chat.openai.com/chat?temporary-chat=true"
-        script = f'''
-        tell application "Safari"
-            activate
-            tell window 1
-                set currentTab to make new tab with properties {CHAT_GPT_URL}
-            end tell
-            set currentTabID to id of currentTab
-        end tell
-        return currentTabID
+
+        script =f'''
+        const safari = Application('Safari');
+
+        // 新しいウィンドウを開く
+        safari.make({{ new: "document" }});
+
+        const windows = safari.windows;
+        const newWindow = windows[windows.length - 1]; // 最後に追加されたウィンドウを取得
+
+        delay(2); 
+        newWindow.tabs[1].url = "{CHAT_GPT_URL}";
+
+        console.log("新しいウィンドウのID: " + newWindow.id());
+
+        newWindow.id()
         '''
-        result = subprocess.run(['osascript', '-e', script], capture_output=True, text=True)
-        print(result)
+        result = subprocess.run(['osascript', '-l', 'JavaScript', '-e', script], capture_output=True, text=True)
+        print(result.stdout)
+        print(result.stderr)
         if result.returncode == 0:
-            return int(result.stdout.strip())
+            try:
+                return result.stdout
+            except ValueError:
+                raise RuntimeError("Safariのウィンドウを取得できませんでした")
         else:
-            raise RuntimeError("Safari経由でchat GPTにアクセスできません")
+            print("STDERR:", result.stderr)
+            raise RuntimeError("Safari経由でChatGPTにアクセスできません")
 
     def send_message(self, message: str) -> None:
         script = f'''
@@ -57,9 +72,23 @@ class SafariChatGPTClient(BaseChatGPTClient):
         else:
             raise RuntimeError("Failed to read message")
 
+def execute_javascript_for_automation(script: str) -> str:
+
+
+def open_window_of_safairi() -> int :
+    pass
+
+
+def create_tab_on_window(windowsID :int ) -> int:
+    pass
+
+def get_tabs_on_window(windowsID :int ) -> List[int]:
+    pass 
+
+
 # 　テスト
 def main():
-    SafariChatGPTClient().start_conversation()
+    SafariChatGPTClient()
 
 
 if __name__ == "__main__":
