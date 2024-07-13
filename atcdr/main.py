@@ -2,8 +2,8 @@ from typing import Union,Tuple
 
 import fire
 
-from atcdr.download_problem import download
-from atcdr.check_samplecase import test
+from atcdr.download import download
+from atcdr.test import test
 
 MAP_COMMANDS = {
     '-t': test,
