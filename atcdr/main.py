@@ -1,5 +1,3 @@
-from typing import Union, Tuple
-
 import fire
 
 from atcdr.download import download
