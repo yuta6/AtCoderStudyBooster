@@ -1,5 +1,5 @@
 import requests
-from operate_gpt import BaseChatGPTClient
+from .operate_gpt import BaseChatGPTClient
 
 class APIChatGPTClient(BaseChatGPTClient):
     def __init__(self, api_key: str):
