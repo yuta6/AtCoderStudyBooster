@@ -13,7 +13,7 @@ def find_link_from(html: str) -> str | None:
     return None
 
 
-def open(file: str | None = None) -> None:
+def open_html(file: str | None = None) -> None:
     if file is None:
         html_files = glob.glob("*.html") + glob.glob("*.htm")
         if html_files:

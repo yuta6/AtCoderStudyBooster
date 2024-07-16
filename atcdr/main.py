@@ -4,15 +4,15 @@ import fire
 
 from atcdr.download import download
 from atcdr.test import test
-from atcdr.open import open
+from atcdr.open import open_html
 
 MAP_COMMANDS = {
     "-t": test,
     "--test": test,
     "-d": download,
     "--download": download,
-    "-o": open,
-    "--open": open,
+    "-o": open_html,
+    "--open": open_html,
     "-h": lambda: fire.Fire(MAP_COMMANDS),
     "--help": lambda: fire.Fire(MAP_COMMANDS),
 }
