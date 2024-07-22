@@ -7,6 +7,7 @@
 !requirements.txt
 !.gitignore
 !*.yaml
+!.vscode/setting.json
 
 # Unignore directories and their contents
 !*/
