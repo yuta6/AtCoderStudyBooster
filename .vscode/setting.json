@@ -1,6 +1,13 @@
+ // 拡張機能が入っていない場合は, これらの設定が無視される.
 {
     "python.linting.enabled": true,
-    "python.linting.pylintEnabled": true,
-    "python.linting.flake8Enabled": false,
-    "python.formatting.provider": "black"
+
+    "python.linting.flake8Enabled": true,
+    "python.linting.mypyEnabled": true,
+    "python.linting.mypyArgs": [
+        "--ignore-missing-imports"
+    ],
+    "python.formatting.provider": "black",
+    "editor.formatOnSave": true,
+    "python.sortImports.args": ["--profile", "black"]
 }
