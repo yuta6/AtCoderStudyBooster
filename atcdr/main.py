@@ -1,10 +1,10 @@
 import fire
 
 from atcdr.download import download
-from atcdr.test import test
 from atcdr.open import open_html
+from atcdr.test import test
 
-MAP_COMMANDS = {
+MAP_COMMANDS: dict = {
     "-t": test,
     "--test": test,
     "-d": download,

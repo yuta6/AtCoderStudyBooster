@@ -8,11 +8,13 @@
 !.gitignore
 !*.yaml
 !.vscode/*
+!setup.sh
+!setup.cfg
 
-# Unignore directories and their contents
 !*/
 
 # Ignore specific directories
 AtCoderStudyBooster.egg-info/
 build/
+venv/
 __pycache__/

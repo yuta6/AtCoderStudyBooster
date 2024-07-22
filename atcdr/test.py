@@ -1,14 +1,14 @@
-from typing import Callable, Dict, List, Union, Optional, Tuple
-from dataclasses import dataclass
-import subprocess
 import os
-from enum import Enum
+import subprocess
+import tempfile
 import time
+from dataclasses import dataclass
+from enum import Enum
+from typing import Callable, Dict, List, Optional, Union
 
 import colorama
-from colorama import Fore, Style
-import tempfile
 from bs4 import BeautifulSoup as bs
+from colorama import Fore
 
 colorama.init(autoreset=True)
 
@@ -204,11 +204,11 @@ def print_result(lcase: LabeledTestCase, result: TestCaseResult) -> None:
     elif result.passed == ResultStatus.RE:
         print(Fore.YELLOW + f"[RE] ランタイムエラー\n{result.output}")
     elif result.passed == ResultStatus.TLE:
-        print(Fore.YELLOW + "[TLE] タイムアウトエラー")
+        print(Fore.YELLOW + "[TLE] タイムアウトエラー\n")
     elif result.passed == ResultStatus.CE:
         print(Fore.YELLOW + f"[CE] コンパイルエラー\n{result.output}")
     elif result.passed == ResultStatus.MLE:
-        print(Fore.YELLOW + f"[ME] メモリ超過エラー\n ")
+        print(Fore.YELLOW + "[ME] メモリ超過エラー\n")
 
 
 def judge_code_from(lcases: List[LabeledTestCase], path: str) -> None:
@@ -243,7 +243,7 @@ def list_files_with_extensions(extensions: List[str]) -> List[str]:
     ]
 
 
-def test(*paths: Tuple[str, ...]) -> None:
+def test(*paths: str) -> None:
     if not paths:
         files = list_files_with_extensions(list(LANGUAGE_RUNNERS.keys()))
         if len(files) == 1:

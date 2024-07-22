@@ -1,7 +1,6 @@
- // 拡張機能が入っていない場合は, これらの設定が無視される.
 {
     "python.linting.enabled": true,
-    "mypy.dmypyExecutable" : true,
+    "mypy.runUsingActiveInterpreter" : true,
     "python.linting.flake8Enabled": true,
     "python.linting.mypyEnabled": true,
     "python.linting.mypyArgs": [

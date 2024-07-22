@@ -1,6 +1,6 @@
-import webbrowser
-import os
 import glob
+import os
+import webbrowser
 
 from bs4 import BeautifulSoup as bs
 

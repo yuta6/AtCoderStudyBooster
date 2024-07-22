@@ -1,11 +1,11 @@
 import os
-import time
 import re
+import time
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional, Union, Callable
+from typing import Callable, List, Match, Optional, Union, cast
 
-import requests
+import requests  # type: ignore
 
 
 class Diff(Enum):
@@ -44,7 +44,7 @@ def get_problem_html(problem: Problem) -> Optional[str]:
             )
         elif 400 <= response.status_code < 500:
             print(
-                f"[Error{response.status_code}] クライアントエラーが発生しました。abc{problem.number} {problem.difficulty.value}"
+                f"[Error{response.status_code}] 問題が見つかりません。abc{problem.number} {problem.difficulty.value}"
             )
             break
         elif 500 <= response.status_code < 600:
@@ -71,13 +71,14 @@ def repair_html(html: str) -> str:
 
 
 def get_title_from_html(html: str) -> Optional[str]:
-    title = re.search(
+    title_match: Optional[Match[str]] = re.search(
         r"<title>(?:.*?-\s*)?([^<]*)</title>", html, re.IGNORECASE | re.DOTALL
     )
-    if title:
-        title = title.group(1).replace(" ", "")
+    if title_match:
+        title: str = title_match.group(1).replace(" ", "")
         title = re.sub(r'[\\/*?:"<>| ]', "", title)
-    return title
+        return title
+    return None
 
 
 def save_html(file_path: str, html: str) -> None:
@@ -145,51 +146,66 @@ def parse_diff_range(range_str: str) -> List[Diff]:
 
 
 def convert_arg(arg: Union[str, int]) -> Union[List[int], List[Diff]]:
-    if arg.isdigit():
-        return [int(arg)]
-    elif arg in Diff.__members__:
-        return [Diff[arg]]
-    elif re.match(r"^\d+\.\.\d+$", arg):
-        return parse_range(arg)
-    elif re.match(r"^[A-F]\.\.[A-F]$", arg):
-        return parse_diff_range(arg)
+    if isinstance(arg, int):
+        return [arg]
+    elif isinstance(arg, str):
+        if arg.isdigit():
+            return [int(arg)]
+        elif arg in Diff.__members__:
+            return [Diff[arg]]
+        elif re.match(r"^\d+\.\.\d+$", arg):
+            return parse_range(arg)
+        elif re.match(r"^[A-F]\.\.[A-F]$", arg):
+            return parse_diff_range(arg)
     raise ValueError(f"{arg}は認識できません")
 
 
-def are_all_integers(args: List[Union[int, Diff]]) -> bool:
+def are_all_integers(args: Union[List[int], List[Diff]]) -> bool:
     return all(isinstance(arg, int) for arg in args)
 
 
-def are_all_diffs(args: List[Union[int, Diff]]) -> bool:
+def are_all_diffs(args: Union[List[int], List[Diff]]) -> bool:
     return all(isinstance(arg, Diff) for arg in args)
 
 
-def download(first: str = None, second: str = None, base_path: str = ".") -> None:
+def download(
+    first: Union[str, int, None] = None,
+    second: Union[str, int, None] = None,
+    base_path: str = ".",
+) -> None:
     if first is None:
         main()
         return
 
     first_args = convert_arg(str(first))
     if second is None:
-        if are_all_diffs(first_args):
+        if isinstance(first, Diff):
             raise ValueError(
-                """難易度だけでなく, 問題番号も指定してコマンドを実行してください. 
+                """難易度だけでなく, 問題番号も指定してコマンドを実行してください.
                              例 atcdr -d A 120  : A問題の120をダウンロードます
                              例 atcdr -d A 120..130  : A問題の120から130をダウンロードます
                              """
             )
-        second_args = list(Diff)
+        second_args: Union[List[int], List[Diff]] = list(Diff)
     else:
         second_args = convert_arg(str(second))
 
     if are_all_integers(first_args) and are_all_diffs(second_args):
+        first_args_int = cast(List[int], first_args)
+        second_args_diff = cast(List[Diff], second_args)
         problems = [
-            Problem(number, diff) for number in first_args for diff in second_args
+            Problem(number, diff)
+            for number in first_args_int
+            for diff in second_args_diff
         ]
         generate_problem_directory(base_path, problems, GenerateMode.gene_path_on_num)
     elif are_all_diffs(first_args) and are_all_integers(second_args):
+        first_args_diff = cast(List[Diff], first_args)
+        second_args_int = cast(List[int], second_args)
         problems = [
-            Problem(number, diff) for diff in first_args for number in second_args
+            Problem(number, diff)
+            for diff in first_args_diff
+            for number in second_args_int
         ]
         generate_problem_directory(base_path, problems, GenerateMode.gene_path_on_diff)
     else:
@@ -214,14 +230,24 @@ def main() -> None:
     choice = input("選択してください: ")
 
     if choice == "1":
-        start_end = input("開始と終了のコンテストの番号をスペースで区切って指定してください (例: 223 230): ")
+        start_end = input(
+            "開始と終了のコンテストの番号をスペースで区切って指定してください (例: 223 230): "
+        )
         start, end = map(int, start_end.split(" "))
-        difficulty = Diff[input("ダウンロードする問題の難易度を指定してください (例: A, B, C): ").upper()]
+        difficulty = Diff[
+            input(
+                "ダウンロードする問題の難易度を指定してください (例: A, B, C): "
+            ).upper()
+        ]
         problem_list = [Problem(number, difficulty) for number in range(start, end + 1)]
         generate_problem_directory(".", problem_list, GenerateMode.gene_path_on_diff)
     elif choice == "2":
         number = int(input("コンテストの番号を指定してください: "))
-        difficulty = Diff[input("ダウンロードする問題の難易度を指定してください (例: A, B, C): ").upper()]
+        difficulty = Diff[
+            input(
+                "ダウンロードする問題の難易度を指定してください (例: A, B, C): "
+            ).upper()
+        ]
         generate_problem_directory(
             ".", [Problem(number, difficulty)], GenerateMode.gene_path_on_diff
         )
