@@ -1,5 +1,7 @@
-configparser
-requests
-beautifulsoup4
-colorama
-fire
+beautifulsoup4==4.12.3
+colorama==0.4.6
+fire==0.6.0
+Requests==2.32.3
+setuptools==69.0.2
+tiktoken==0.7.0
+yfinance==0.2.41

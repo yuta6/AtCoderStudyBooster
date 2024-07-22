@@ -4,7 +4,7 @@
 # ただし, 以下のファイルは無視しない
 !*.py
 !*.md
-!requirements.txt
+!*.txt
 !.gitignore
 !*.yaml
 !.vscode/*
