@@ -1,17 +1,20 @@
-# Ignore all files
+# すべてのファイルを無視する
 *
 
-# But not these extensions
+# ただし, 以下のファイルは無視しない
 !*.py
 !*.md
-!requirements.txt
+!*.txt
 !.gitignore
+!*.yaml
+!.vscode/*
+!setup.sh
+!setup.cfg
 
-# Unignore directories and their contents
 !*/
 
 # Ignore specific directories
 AtCoderStudyBooster.egg-info/
 build/
+venv/
 __pycache__/
-

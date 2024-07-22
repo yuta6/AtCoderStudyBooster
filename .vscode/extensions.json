@@ -1,0 +1,9 @@
+{
+    "recommendations": [
+        "ms-python.python",           // Python
+        "ms-python.vscode-pylance",   // Pylance
+        "ms-python.isort",            // isort ... import順序の自動整理
+        "matangover.mypy",            // Mypy ... 型チェック
+        "ms-python.black-formatter",  // Black formatter ... 自動整形
+    ]
+}

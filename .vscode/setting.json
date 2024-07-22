@@ -1,0 +1,12 @@
+{
+    "python.linting.enabled": true,
+    "mypy.runUsingActiveInterpreter" : true,
+    "python.linting.flake8Enabled": true,
+    "python.linting.mypyEnabled": true,
+    "python.linting.mypyArgs": [
+        "--ignore-missing-imports"
+    ],
+    "python.formatting.provider": "black",
+    "editor.formatOnSave": true,
+    "python.sortImports.args": ["--profile", "black"]
+}
