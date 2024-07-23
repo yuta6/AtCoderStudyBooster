@@ -1,37 +1,33 @@
 import tiktoken
 import yfinance as yf
 
-GPT4o_Input_Rate = 5/1000**2
-GPT4o_Output_Rate = 15/1000**2 
+GPT4O_INPUT_RATE = 5 / 1000**2
+GPT4O_OUTPUT_RATE = 15 / 1000**2
+GPT4OMINI_INPUT_RATE = 0.15 / 1000**2
+GPT4OMINI_OUTPUT_RATE = 0.60 / 1000**2
 
 COST_TYPE_INPUT = "input"
 COST_TYPE_OUTPUT = "output"
+
 
 def count_tokens(text: str) -> int:
     gpt4o_model = tiktoken.encoding_for_model("gpt-4o")
     gpt4_model = tiktoken.encoding_for_model("gpt-4")
-    print(f"{gpt4o_model.name} : {len(gpt4o_model.encode(text))}, {gpt4_model.name} : {len(gpt4_model.encode(text))}")
+    print(
+        f"{gpt4o_model.name} : {len(gpt4o_model.encode(text))}, {gpt4_model.name} : {len(gpt4_model.encode(text))}"
+    )
 
-import tiktoken
-import yfinance as yf
-
-# グローバル定数の定義
-COST_TYPE_INPUT = "input"
-COST_TYPE_OUTPUT = "output"
-
-# トークンレート (USD)
-GPT4o_Input_Rate = 5 / 1000**2
-GPT4o_Output_Rate = 15 / 1000**2
 
 class CalcApiCost:
-    def __init__(self, text: str, cost_type: str) -> None:
+    def __init__(self, text: str, cost_type: str, model_name: str) -> None:
         self._text = text
         self._cost_type = cost_type
+        self._model_name = model_name
 
-        # 為替レートを取得
+        # ドル円の為替レートを取得
         ticker = yf.Ticker("JPY=X")
-        self._exchange_rate = ticker.history(period="1d")['Close'].iloc[0]
-        
+        self._exchange_rate = ticker.history(period="1d")["Close"].iloc[0]
+
         # トークンモデルを取得
         self._gpt4o_model = tiktoken.encoding_for_model("gpt-4o")
 
@@ -51,7 +47,9 @@ class CalcApiCost:
     @cost_type.setter
     def cost_type(self, new_cost_type: str):
         if new_cost_type not in [COST_TYPE_INPUT, COST_TYPE_OUTPUT]:
-            raise ValueError("Invalid cost type. Choose 'input' or 'output'.")
+            raise ValueError(
+                "コストタイプの指定が間違っています. 'input'か'output'で指定してください."
+            )
         self._cost_type = new_cost_type
         self._calculate_cost()
 
@@ -69,22 +67,24 @@ class CalcApiCost:
         self._token_count = len(self._gpt4o_model.encode(self._text))
 
         if self._cost_type == COST_TYPE_INPUT:
-            cost_usd = self._token_count * GPT4o_Input_Rate
+            cost_usd = self._token_count * GPT4O_INPUT_RATE
+            cost_usd = self._token_count * GPT4O_OUTPUT_RATE
         elif self._cost_type == COST_TYPE_OUTPUT:
-            cost_usd = self._token_count * GPT4o_Output_Rate
+            cost_usd = self._token_count * GPT4OMINI_INPUT_RATE
+            cost_usd = self._token_count * GPT4OMINI_OUTPUT_RATE
 
         self._usd = cost_usd
         self._jpy = cost_usd * self._exchange_rate
 
     def __str__(self) -> str:
         return f"token count: {self._token_count} \n{self.cost_type} cost: ${self.usd} {self.jpy}円"
-    
+
     def __repr__(self) -> str:
         return f"calc_api_cost({self.text},{self.cost_type})"
-    
+
 
 def main():
-    text=f"""
+    text = f"""
     抽象クラスを実装するメリットは、抽象クラスの特徴１に書いた、"抽象クラスを継承したサブクラスは、抽象クラスにある抽象メソッドを必ずオーバーライドしなければならない" です。
 
     これが意味する具体的なメリットは、、、
@@ -106,5 +106,7 @@ def main():
     それでは、次に抽象クラスを用いるデザインパターンとサンプルプログラムを紹介します。
     """
     print(CalcApiCost(text, COST_TYPE_INPUT))
+
+
 if __name__ == "__main__":
     main()

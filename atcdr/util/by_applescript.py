@@ -1,10 +1,10 @@
 # Apple ScriptからSafariを操作することによってchatGPTを利用する.
-from .operate_gpt import BaseChatGPTClient
+from .operate_gpt import BaseChatGPT
 from .safari_operator_by_applescript import SafariWindow
 
 
-class SafariChatGPTClient(BaseChatGPTClient):
-    def __init__(self) -> None :
+class SafariChatGPT(BaseChatGPT):
+    def __init__(self) -> None:
         CHAT_GPT_URL = "https://chat.openai.com/chat?temporary-chat=true"
         self.window = SafariWindow()
         self.tab = self.window.create_new_tab(CHAT_GPT_URL)
@@ -32,12 +32,11 @@ class SafariChatGPTClient(BaseChatGPTClient):
         """
         result = self.tab.do_javascript(script)
         print(result)
+
     def read_message(self) -> str:
         self.tab.do_javascript()
 
+
 if __name__ == "__main__":
-    gpt=SafariChatGPTClient()
+    gpt = SafariChatGPT()
     gpt.send_message("Hello, how are you?")
-
-
-

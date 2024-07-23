@@ -1,18 +1,18 @@
-from typing import List
 import subprocess
 import uuid
-import time
+
 
 def execute_javascript_for_automation(script: str) -> subprocess.CompletedProcess[str]:
-    result = subprocess.run(['osascript','-e', script], capture_output=True, text=True)
+    result = subprocess.run(["osascript", "-e", script], capture_output=True, text=True)
     if result.returncode == 0:
         return result
     else:
         raise RuntimeError("AppleScript Error: " + result.stderr)
 
+
 class SafariTab:
 
-    def _get_tab_info(self, id :str) :
+    def _get_tab_info(self, id: str):
         script = f"""
         tell application "Safari"
             set win to (first window whose id is {id})
@@ -27,7 +27,7 @@ class SafariTab:
         self.visible
         self.source
         self.text
-        pass 
+        pass
 
     def __init__(self) -> None:
         self.id = None
@@ -52,7 +52,7 @@ class SafariTab:
                     exit repeat
                 end if
             end repeat
-            
+
             if targetTab is missing value then
                 return "Error: Tab not found"
             else
@@ -60,16 +60,17 @@ class SafariTab:
             end if
         end tell
         """
-        
+
         result = execute_javascript_for_automation(applescript)
-        
+
         if result.returncode == 0:
             return result.stdout.strip()
         else:
             raise RuntimeError(f"JavaScript execution failed: {result.stderr}")
 
-    def close (self) -> None:
+    def close(self) -> None:
         pass
+
     def reload(self) -> None:
         pass
 
@@ -82,8 +83,9 @@ class SafariTab:
     def set_url(self, url: str) -> None:
         pass
 
+    # 取得したWindow IDに基づいた処理を行う.
 
-    # 取得したWindow IDに基づいた処理を行う. 
+
 class SafariWindow:
 
     def __init__(self) -> None:
@@ -124,7 +126,7 @@ class SafariWindow:
         tab_id = str(uuid.uuid4())
         if url is None:
             url = "about:blank"
-        
+
         script = f"""
         tell application "Safari"
             set targetWindow to missing value
@@ -134,7 +136,7 @@ class SafariWindow:
                     exit repeat
                 end if
             end repeat
-            
+
             if targetWindow is missing value then
                 return "Error: Window not found"
             else
@@ -149,15 +151,14 @@ class SafariWindow:
         end tell
         """
         result = execute_javascript_for_automation(script)
-        
+
         if "Error:" in result.stdout:
             raise RuntimeError(result.stdout)
-        
+
         new_tab = SafariTab()
         new_tab.id = tab_id
         self.tabs.append(new_tab)
         return new_tab
-        
-    def find_tab_from_id(self) :
-        pass
 
+    def find_tab_from_id(self):
+        pass

@@ -1,13 +1,15 @@
 import requests
-from .operate_gpt import BaseChatGPTClient
 
-class APIChatGPTClient(BaseChatGPTClient):
+from .operate_gpt import BaseChatGPT
+
+
+class APIChatGPT(BaseChatGPT):
     def __init__(self, api_key: str):
         self.api_key = api_key
         self.api_url = "https://api.openai.com/v1/chat/completions"
         self.headers = {
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {self.api_key}"
+            "Authorization": f"Bearer {self.api_key}",
         }
         self.messages = []
 
@@ -19,11 +21,11 @@ class APIChatGPTClient(BaseChatGPTClient):
             "model": "gpt-4",
             "messages": self.messages,
             "max_tokens": 150,
-            "temperature": 0.7
+            "temperature": 0.7,
         }
         response = requests.post(self.api_url, headers=self.headers, json=data)
         response.raise_for_status()
         completion = response.json()
-        message = completion['choices'][0]['message']['content']
+        message = completion["choices"][0]["message"]["content"]
         self.messages.append({"role": "assistant", "content": message})
         return message
