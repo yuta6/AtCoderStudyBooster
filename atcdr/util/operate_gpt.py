@@ -1,52 +1,48 @@
-from abc import ABC, abstractmethod
+from enum import Enum
+
+import requests  # type: ignore
 
 
-class BaseChatGPT(ABC):
-    @abstractmethod
-    def send_message(self, message: str) -> None:
-        pass
-
-    @abstractmethod
-    def read_message(self) -> str:
-        pass
-
-
-from .by_api import APIChatGPT
-from .by_applescript import SafariChatGPT
+class Model(Enum):
+    GPT4O = "gpt-4o"
+    GPT4O_MINI = "gpt-4o-mini"
 
 
 class ChatGPT:
-    @staticmethod
-    def create(method: str, api_key: str = None) -> BaseChatGPT:
-        if method == "API":
-            if not api_key:
-                raise ValueError("APIキーを指定してください.")
-            return APIChatGPT(api_key)
-        elif method == "AppleScript":
-            return SafariChatGPT()
-        else:
-            raise ValueError("Invalid method specified. Choose 'API' or 'AppleScript'.")
 
+    API_URL = "https://api.openai.com/v1/chat/completions"
 
-# 使用例
-def main():
-    try:
-        # APIを使用するクライアント
-        api_key = "YOUR_API_KEY"
-        gptapi = ChatGPT.create("API", api_key)
-        gptapi.send_message("Hello, how are you?")
-        api_response = gptapi.read_message()
-        print(f"API Response: {api_response}")
+    # APIの使い方 https://platform.openai.com/docs/api-reference/making-requests
+    def __init__(
+        self,
+        api_key: str,
+        model: Model = Model.GPT4O_MINI,
+        max_tokens: int = 3000,
+        temperature: float = 0.7,
+        messages: list = [],
+    ) -> None:
 
-        # AppleScriptを使用するクライアント
-        gptscript = ChatGPT.create("AppleScript")
-        gptscript.send_message("Hello, how are you?")
-        script_response = gptscript.read_message()
-        print(f"Safari Response: {script_response}")
+        self.model = model
+        self.max_tokens = max_tokens
+        self.temperature = temperature
+        self.messages = messages
+        self.__headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}",
+        }
 
-    except Exception as e:
-        print(f"Error: {e}")
+    def tell(self, message: str) -> str:
 
+        self.messages.append({"role": "user", "content": message})
 
-if __name__ == "__main__":
-    main()
+        settings = {
+            "model": self.model,
+            "messages": self.messages,
+            "max_tokens": self.max_tokens,
+            "temperature": self.temperature,
+        }
+
+        response = requests.post(self.API_URL, headers=self.__headers, json=settings)
+        reply = response.json["choices"][0]["message"]["content"]
+
+        return reply
