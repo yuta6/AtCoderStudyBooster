@@ -6,16 +6,14 @@ from atcdr.open import open_html
 from atcdr.test import test
 
 MAP_COMMANDS: dict = {
-    "-t": test,
-    "--test": test,
-    "-d": download,
-    "--download": download,
-    "-g": generate,
-    "--generate": generate,
-    "-o": open_html,
-    "--open": open_html,
-    "-h": lambda: fire.Fire(MAP_COMMANDS),
-    "--help": lambda: fire.Fire(MAP_COMMANDS),
+    "test": test,
+    "t": test,
+    "download": download,
+    "d": download,
+    "open": open_html,
+    "o": open_html,
+    "generate": generate,
+    "g": generate,
 }
 
 
