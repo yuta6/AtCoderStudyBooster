@@ -1,8 +1,47 @@
+import os
 from typing import Dict, List, Optional
 
 import requests  # type: ignore
 
 from .calc_api_cost import CostType, Currency, Model, Rate
+
+
+def set_api_key() -> Optional[str]:
+
+    api_key = os.getenv("OPENAI_API_KEY")
+    if api_key and validate_api_key(api_key):
+        return api_key
+    elif api_key:
+        print("環境変数に設定されているAPIキーの検証に失敗しました ")
+    else:
+        pass
+
+    api_key = input(
+        "https://platform.openai.com/api-keys からchatGPTのAPIキーを入手しましょう。\nAPIキー入力してください: "
+    )
+    if validate_api_key(api_key):
+        print("APIキーのテストに成功しました。")
+        os.environ["CHATGPT_API_KEY"] = api_key
+        return api_key
+    else:
+        print("コード生成にはAPIキーが必要です。")
+        return None
+
+
+def validate_api_key(api_key: str) -> bool:
+
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {api_key}",
+    }
+
+    response = requests.get("https://api.openai.com/v1/models", headers=headers)
+
+    if response.status_code == 200:
+        return True
+    else:
+        print("APIキーの検証に失敗しました。")
+        return False
 
 
 class ChatGPT:
@@ -12,7 +51,7 @@ class ChatGPT:
     # APIの使い方 https://platform.openai.com/docs/api-reference/making-requests
     def __init__(
         self,
-        api_key: str,
+        api_key: Optional[str] = None,
         model: Model = Model.GPT4O_MINI,
         max_tokens: int = 3000,
         temperature: float = 0.7,
@@ -20,6 +59,7 @@ class ChatGPT:
         system_prompt: str = "You are a helpful assistant.",
     ) -> None:
 
+        self.api_key = api_key or os.getenv("OPENAI_API_KEY")
         self.model = model
         self.max_tokens = max_tokens
         self.temperature = temperature

@@ -142,7 +142,7 @@ def parse_diff_range(range_str: str) -> List[Diff]:
         end_index = ord(end) - ord("A")
         if start_index <= end_index:
             return [Diff(chr(i + ord("A"))) for i in range(start_index, end_index + 1)]
-    raise ValueError("Invalid Diff range format")
+    raise ValueError("A..C の形式になっていません")
 
 
 def convert_arg(arg: Union[str, int]) -> Union[List[int], List[Diff]]:
