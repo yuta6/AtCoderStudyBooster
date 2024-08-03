@@ -1,14 +1,43 @@
+import re
+
+from bs4 import BeautifulSoup as bs
+from markdownify import MarkdownConverter
+
 from atcdr.util.operate_gpt import ChatGPT, set_api_key
 
 
-class ProblemStruct:
-    def __init__(self) -> None:
-        self.problem_block = None
-        self.condition_block = None
-        self.test_block = None
+class CustomMarkdownConverter(MarkdownConverter):
 
-    def parse_html(self) -> None:
+    def convert_var(self, el, text, convert_as_inline):
+        var_text = el.text.strip()
+        return f"\\({var_text}\\)"
+
+    def convert_pre(self, el, text, convert_as_inline):
+        pre_text = el.text.strip()
+        return f"```\n{pre_text}\n```"
+
+
+def custom_markdownify(html, **options):
+    return CustomMarkdownConverter(**options).convert(html)
+
+
+def remove_unnecessary_newlines(md_text):
+    md_text = re.sub(r"\n\s*\n\s*\n+", "\n\n", md_text)
+    md_text = md_text.strip()
+    return md_text
+
+
+def make_problem_markdown(html_content: str, lang: str) -> str:
+    soup = bs(html_content, "html.parser")
+    task_statement = soup.find("div", {"id": "task-statement"})
+    if lang == "ja":
+        lang_class = "lang-ja"
+    elif lang == "en":
+        lang_class = "lang-en"
+    else:
         pass
+    span = task_statement.find("span", {"class": lang_class})
+    return str(span)
 
 
 # ChatGPTクラスを利用して競技プログラムの問題を解く
@@ -23,9 +52,7 @@ def generate() -> None:
     )
 
     # カレントディレクトリの問題文のHTMLファイルを読み込む
-
-    # 読み込んだHTMLファイルをparseして3つの情報を取得する
-    # 問題文, 変数の制約, テストケース
+    # open.pyと似たロジックなのでコンポーネント化したい。
 
     # 適切なプロンプトを作成してGPTに与える
 
