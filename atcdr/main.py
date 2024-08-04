@@ -2,7 +2,7 @@ import fire
 
 from atcdr.download import download
 from atcdr.generate import generate
-from atcdr.open import open_html
+from atcdr.open import open_files
 from atcdr.test import test
 
 MAP_COMMANDS: dict = {
@@ -10,8 +10,8 @@ MAP_COMMANDS: dict = {
     "t": test,
     "download": download,
     "d": download,
-    "open": open_html,
-    "o": open_html,
+    "open": open_files,
+    "o": open_files,
     "generate": generate,
     "g": generate,
 }

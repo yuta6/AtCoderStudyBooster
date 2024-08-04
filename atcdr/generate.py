@@ -43,7 +43,7 @@ def make_problem_markdown(html_content: str, lang: str) -> str:
 # ChatGPTクラスを利用して競技プログラムの問題を解く
 # generateのオプション --with-no-test
 # atcdr generate
-def generate() -> None:
+def generate(*args: str, without_test: bool = False) -> None:
 
     if set_api_key():
         return

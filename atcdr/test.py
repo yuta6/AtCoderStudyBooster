@@ -10,6 +10,8 @@ import colorama
 from bs4 import BeautifulSoup as bs
 from colorama import Fore
 
+from atcdr.util.filename import FileExtension, execute_files
+
 colorama.init(autoreset=True)
 
 
@@ -235,46 +237,7 @@ def run_test(path_of_code: str) -> None:
     judge_code_from(test_cases, path_of_code)
 
 
-def list_files_with_extensions(extensions: List[str]) -> List[str]:
-    return [
-        f
-        for f in os.listdir(".")
-        if os.path.isfile(f) and os.path.splitext(f)[1] in extensions
-    ]
-
-
-def test(*paths: str) -> None:
-    if not paths:
-        files = list_files_with_extensions(list(LANGUAGE_RUNNERS.keys()))
-        if len(files) == 1:
-            run_test(files[0])
-        elif len(files) > 1:
-            print("複数のファイルが見つかりました。以下のファイルから選択してください:")
-            for i, file in enumerate(files):
-                print(f"{i+1}. {file}")
-            choice = int(input("ファイル番号を入力してください: ")) - 1
-            if 0 <= choice < len(files):
-                run_test(files[choice])
-            else:
-                print("無効な選択です")
-        else:
-            print("テスト可能なファイルが見つかりません")
-    elif paths == ("*",):
-        files = list_files_with_extensions(list(LANGUAGE_RUNNERS.keys()))
-        for file in files:
-            run_test(file)
-    else:
-        for path in paths:
-            ext = os.path.splitext(path)[1]
-            if ext in LANGUAGE_RUNNERS:
-                run_test(path)
-            else:
-                print(f"エラー: {path}はサポートされていないファイルタイプです")
-
-
-def main():
-    test()
-
-
-if __name__ == "__main__":
-    main()
+def test(*args: str) -> None:
+    execute_files(
+        *args, func=run_test, target_filetypes=FileExtension.SOURCE_EXTENSIONS
+    )
