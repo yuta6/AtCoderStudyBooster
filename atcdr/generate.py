@@ -3,7 +3,7 @@ import re
 from bs4 import BeautifulSoup as bs
 from markdownify import MarkdownConverter
 
-from atcdr.util.operate_gpt import ChatGPT, set_api_key
+from atcdr.util.gpt import ChatGPT, set_api_key
 
 
 class CustomMarkdownConverter(MarkdownConverter):

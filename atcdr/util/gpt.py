@@ -3,7 +3,7 @@ from typing import Dict, List, Optional
 
 import requests  # type: ignore
 
-from .calc_api_cost import CostType, Currency, Model, Rate
+from .cost import CostType, Currency, Model, Rate
 
 
 def set_api_key() -> Optional[str]:
