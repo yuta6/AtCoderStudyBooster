@@ -1,6 +1,12 @@
 import os
 import re
 
+from atcdr.test import (
+    ResultStatus,
+    create_testcases_from_html,
+    judge_code_from,
+    render_result,
+)
 from atcdr.util.filename import (
     FILE_EXTENSIONS,
     Filename,
@@ -35,8 +41,11 @@ def generate_code(file: Filename, lang: Lang) -> None:
     code = get_code_from_gpt_output(reply)
     print(f"AI利用にかかったAPIコスト：{gpt.sum_cost}")
 
-    saved_filename = os.path.splitext(file)[0] + FILE_EXTENSIONS[lang]
+    saved_filename = (
+        os.path.splitext(file)[0] + f"by_{gpt.model}" + FILE_EXTENSIONS[lang]
+    )
     with open(saved_filename, "w") as f:
+        print(f"コードを保存しました：{saved_filename}")
         f.write(code)
 
 
@@ -67,6 +76,7 @@ def solve_problem(file: Filename, lang: Lang) -> None:
     with open(file, "r") as f:
         html_content = f.read()
     md = make_problem_markdown(html_content, "en")
+    labeled_cases = create_testcases_from_html(html_content)
 
     if set_api_key() is None:
         return
@@ -74,11 +84,30 @@ def solve_problem(file: Filename, lang: Lang) -> None:
         system_prompt=f"""You are a brilliant programmer. Your task is to solve an AtCoder problem. AtCoder is a platform that hosts programming competitions where participants write programs to solve algorithmic challenges.Please solve the problem in {lang2str(lang)}.""",
     )
     reply = gpt.tell(md)
-    code = get_code_from_gpt_output(reply)
 
-    savaed_filename = os.path.splitext(file)[0] + FILE_EXTENSIONS[lang]
-    with open(savaed_filename, "w") as f:
-        f.write(code)
+    for i in range(8):
+
+        code = get_code_from_gpt_output(reply)
+
+        saved_filename = os.path.splitext(file)[0] + FILE_EXTENSIONS[lang]
+        with open(saved_filename, "w") as f:
+            f.write(code)
+
+        labeled_results = judge_code_from(labeled_cases, saved_filename)
+        test_report = "\n".join(render_result(lresult) for lresult in labeled_results)
+
+        print(f"{i}回目のコード生成でのテスト結果:---")
+        print(test_report)
+
+        if all(
+            labeled_result.result.passed == ResultStatus.AC
+            for labeled_result in labeled_results
+        ):
+            print("コードのテストに成功!")
+            print(f"AI利用にかかったAPIコスト：{gpt.sum_cost}")
+            break
+        else:
+            pass
 
 
 def generate(

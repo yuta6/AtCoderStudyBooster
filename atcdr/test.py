@@ -44,7 +44,13 @@ class TestCaseResult:
     passed: ResultStatus
 
 
-def parse_html(html: str) -> List[LabeledTestCase]:
+@dataclass
+class LabeledTestCaseResult:
+    label: str
+    result: TestCaseResult
+
+
+def create_testcases_from_html(html: str) -> List[LabeledTestCase]:
     soup = bs(html, "html.parser")
     test_cases = []
 
@@ -181,38 +187,6 @@ LANGUAGE_RUNNERS: Dict[Lang, Callable[[str, TestCase], TestCaseResult]] = {
 }
 
 
-CHECK_MARK = "\u2713"
-CROSS_MARK = "\u00d7"
-
-
-def report_result(lcase: LabeledTestCase, result: TestCaseResult) -> str:
-    output = f"{Fore.CYAN}{lcase.label} のテスト:\n"
-
-    if result.passed == ResultStatus.AC:
-        output += (
-            Fore.GREEN
-            + f"{CHECK_MARK} Accepted !! 実行時間: {result.executed_time} ms\n 出力\n{result.output}\n   "
-        )
-    elif result.passed == ResultStatus.WA:
-        output += (
-            Fore.RED
-            + f"{CROSS_MARK} Wrong Answer 実行時間: {result.executed_time} ms 出力:\n{result.output}\n   正解の出力:\n{lcase.case.output}"
-        )
-    elif result.passed == ResultStatus.RE:
-        output += Fore.YELLOW + f"[RE] ランタイムエラー\n{result.output}"
-    elif result.passed == ResultStatus.TLE:
-        output += Fore.YELLOW + "[TLE] タイムアウトエラー\n"
-    elif result.passed == ResultStatus.CE:
-        output += Fore.YELLOW + f"[CE] コンパイルエラー\n{result.output}"
-    elif result.passed == ResultStatus.MLE:
-        output += Fore.YELLOW + "[ME] メモリ超過エラー\n"
-
-    # Reset color to default
-    output += Fore.RESET
-
-    return output
-
-
 def choose_lang(path: str) -> Optional[Callable[[str, TestCase], TestCaseResult]]:
     ext = os.path.splitext(path)[1]
     lang = next(
@@ -224,17 +198,45 @@ def choose_lang(path: str) -> Optional[Callable[[str, TestCase], TestCaseResult]
     return None
 
 
-def judge_code_from(lcases: List[LabeledTestCase], path: str) -> str:
+def judge_code_from(
+    lcases: List[LabeledTestCase], path: str
+) -> List[LabeledTestCaseResult]:
     runner = choose_lang(path)
     if runner is None:
-        return f"ランナーが見つかりませんでした。指定されたパス: {path}"
+        raise ValueError(f"ランナーが見つかりませんでした。指定されたパス: {path}")
 
-    output = f"{path}をテストします。\n"
-    output += "-" * 20 + "\n"
+    return [
+        LabeledTestCaseResult(lcase.label, runner(path, lcase.case)) for lcase in lcases
+    ]
 
-    for lcase in lcases:
-        result = runner(path, lcase.case)
-        output += report_result(lcase, result) + "\n"
+
+CHECK_MARK = "\u2713"
+CROSS_MARK = "\u00d7"
+
+
+def render_result(lresult: LabeledTestCaseResult) -> str:
+    output = f"{Fore.CYAN}{lresult.label} of Test:\n"
+    result = lresult.result
+
+    if result.passed == ResultStatus.AC:
+        output += (
+            Fore.GREEN + f"{CHECK_MARK} Accepted !! Time: {result.executed_time} ms\n"
+        )
+    elif result.passed == ResultStatus.WA:
+        output += (
+            Fore.RED
+            + f"{CROSS_MARK} Wrong Answer ! Time: {result.executed_time} ms\n  Output:\n{result.output}\n"
+        )
+    elif result.passed == ResultStatus.RE:
+        output += Fore.YELLOW + f"[RE] Runtime Error\n  Output:\n{result.output}"
+    elif result.passed == ResultStatus.TLE:
+        output += Fore.YELLOW + "[TLE] Time Limit Exceeded\n"
+    elif result.passed == ResultStatus.CE:
+        output += Fore.YELLOW + f"[CE] Compile Error\n  Output:\n{result.output}"
+    elif result.passed == ResultStatus.MLE:
+        output += Fore.YELLOW + "[ME] Memory Limit Exceeded\n"
+
+    output += Fore.RESET
 
     return output
 
@@ -242,13 +244,20 @@ def judge_code_from(lcases: List[LabeledTestCase], path: str) -> str:
 def run_test(path_of_code: str) -> None:
     html_paths = [f for f in os.listdir(".") if f.endswith(".html")]
     if not html_paths:
+        print(
+            "問題のファイルが見つかりません。\n問題のファイルが存在するディレクトリーに移動してから実行してください。"
+        )
         return
 
     with open(html_paths[0], "r") as file:
         html = file.read()
 
-    test_cases = parse_html(html)
-    print(judge_code_from(test_cases, path_of_code))
+    test_cases = create_testcases_from_html(html)
+    print(f"{path_of_code}をテストします。\n" + "-" * 20 + "\n")
+    test_results = judge_code_from(test_cases, path_of_code)
+    output = "\n".join(render_result(lresult) for lresult in test_results)
+
+    print(output)
 
 
 def test(*args: str) -> None:
