@@ -10,7 +10,7 @@ import colorama
 from bs4 import BeautifulSoup as bs
 from colorama import Fore
 
-from atcdr.util.filename import FileExtension, execute_files
+from atcdr.util.filename import FILE_EXTENSIONS, SOURCE_LANGUAGES, Lang, execute_files
 
 colorama.init(autoreset=True)
 
@@ -171,58 +171,72 @@ def run_java(path: str, case: TestCase) -> TestCaseResult:
             os.remove(class_path)
 
 
-LANGUAGE_RUNNERS: Dict[str, Callable[[str, TestCase], TestCaseResult]] = {
-    ".py": run_python,
-    ".js": run_javascript,
-    ".c": run_c,
-    ".cpp": run_cpp,
-    ".rs": run_rust,
-    ".java": run_java,
+LANGUAGE_RUNNERS: Dict[Lang, Callable[[str, TestCase], TestCaseResult]] = {
+    Lang.PYTHON: run_python,
+    Lang.JAVASCRIPT: run_javascript,
+    Lang.C: run_c,
+    Lang.CPP: run_cpp,
+    Lang.RUST: run_rust,
+    Lang.JAVA: run_java,
 }
-
-
-def choose_lang(path: str) -> Optional[Callable[[str, TestCase], TestCaseResult]]:
-    ext = os.path.splitext(path)[1]
-    return LANGUAGE_RUNNERS[ext] if ext in LANGUAGE_RUNNERS else None
 
 
 CHECK_MARK = "\u2713"
 CROSS_MARK = "\u00d7"
 
 
-def print_result(lcase: LabeledTestCase, result: TestCaseResult) -> None:
-    print(f"{Fore.CYAN}{lcase.label} のテスト:")
+def report_result(lcase: LabeledTestCase, result: TestCaseResult) -> str:
+    output = f"{Fore.CYAN}{lcase.label} のテスト:\n"
 
     if result.passed == ResultStatus.AC:
-        print(
+        output += (
             Fore.GREEN
             + f"{CHECK_MARK} Accepted !! 実行時間: {result.executed_time} ms\n 出力\n{result.output}\n   "
         )
     elif result.passed == ResultStatus.WA:
-        print(
+        output += (
             Fore.RED
             + f"{CROSS_MARK} Wrong Answer 実行時間: {result.executed_time} ms 出力:\n{result.output}\n   正解の出力:\n{lcase.case.output}"
         )
     elif result.passed == ResultStatus.RE:
-        print(Fore.YELLOW + f"[RE] ランタイムエラー\n{result.output}")
+        output += Fore.YELLOW + f"[RE] ランタイムエラー\n{result.output}"
     elif result.passed == ResultStatus.TLE:
-        print(Fore.YELLOW + "[TLE] タイムアウトエラー\n")
+        output += Fore.YELLOW + "[TLE] タイムアウトエラー\n"
     elif result.passed == ResultStatus.CE:
-        print(Fore.YELLOW + f"[CE] コンパイルエラー\n{result.output}")
+        output += Fore.YELLOW + f"[CE] コンパイルエラー\n{result.output}"
     elif result.passed == ResultStatus.MLE:
-        print(Fore.YELLOW + "[ME] メモリ超過エラー\n")
+        output += Fore.YELLOW + "[ME] メモリ超過エラー\n"
+
+    # Reset color to default
+    output += Fore.RESET
+
+    return output
 
 
-def judge_code_from(lcases: List[LabeledTestCase], path: str) -> None:
+def choose_lang(path: str) -> Optional[Callable[[str, TestCase], TestCaseResult]]:
+    ext = os.path.splitext(path)[1]
+    lang = next(
+        (lang for lang, extension in FILE_EXTENSIONS.items() if extension == ext), None
+    )
+    # lang が None でない場合のみ get を呼び出す
+    if lang is not None:
+        return LANGUAGE_RUNNERS.get(lang)
+    return None
+
+
+def judge_code_from(lcases: List[LabeledTestCase], path: str) -> str:
     runner = choose_lang(path)
     if runner is None:
-        return
+        return f"ランナーが見つかりませんでした。指定されたパス: {path}"
 
-    print(f"{path}をテストします.")
-    print("-" * 20)
+    output = f"{path}をテストします。\n"
+    output += "-" * 20 + "\n"
+
     for lcase in lcases:
         result = runner(path, lcase.case)
-        print_result(lcase, result)
+        output += report_result(lcase, result) + "\n"
+
+    return output
 
 
 def run_test(path_of_code: str) -> None:
@@ -234,10 +248,8 @@ def run_test(path_of_code: str) -> None:
         html = file.read()
 
     test_cases = parse_html(html)
-    judge_code_from(test_cases, path_of_code)
+    print(judge_code_from(test_cases, path_of_code))
 
 
 def test(*args: str) -> None:
-    execute_files(
-        *args, func=run_test, target_filetypes=FileExtension.SOURCE_EXTENSIONS
-    )
+    execute_files(*args, func=run_test, target_filetypes=SOURCE_LANGUAGES)

@@ -1,68 +1,110 @@
-from atcdr.util.filename import FileExtension, Filename, execute_files
+import os
+import re
+
+from atcdr.util.filename import (
+    FILE_EXTENSIONS,
+    Filename,
+    Lang,
+    execute_files,
+    lang2str,
+    str2lang,
+)
 from atcdr.util.gpt import ChatGPT, set_api_key
 from atcdr.util.problem import make_problem_markdown
 
 
-def solve_problem(file: Filename, lang: str) -> None:
+def get_code_from_gpt_output(output: str) -> str:
 
-    with open(file, "r") as f:
-        html_content = f.read()
-    html_content
-
-
-def generate_code(file: Filename, lang: str) -> None:
-
-    with open(file, "r") as f:
-        html_content = f.read()
-    if set_api_key():
-        return
-    ChatGPT(
-        system_prompt="You are a genius programmer. Your job is to generate the correct code for the problem.",
-    )
-    html_content
+    pattern = re.compile(r"```(?:\w+)?\s*(.*?)\s*```", re.DOTALL)
+    match = pattern.search(output)
+    return match.group(1) if match else ""
 
 
-def generate_template(file: Filename, lang: str) -> None:
+def generate_code(file: Filename, lang: Lang) -> None:
 
     with open(file, "r") as f:
         html_content = f.read()
     md = make_problem_markdown(html_content, "en")
-    md
+
+    if set_api_key() is None:
+        return
+    gpt = ChatGPT(
+        system_prompt=f"""You are an excellent programmer. You solve problems in competitive programming.When a user provides you with a problem from a programming contest called AtCoder, including the Problem,Constraints, Input, Output, Input Example, and Output Example, please carefully consider these and solve the problem.Make sure that your output code block contains no more than two blocks. Pay close attention to the Input, Input Example, Output, and Output Example.Create the solution in {lang2str(lang)}.""",
+    )
+    reply = gpt.tell(md)
+    code = get_code_from_gpt_output(reply)
+    print(f"AI利用にかかったAPIコスト：{gpt.sum_cost}")
+
+    saved_filename = os.path.splitext(file)[0] + FILE_EXTENSIONS[lang]
+    with open(saved_filename, "w") as f:
+        f.write(code)
+
+
+def generate_template(file: Filename, lang: Lang) -> None:
+
+    with open(file, "r") as f:
+        html_content = f.read()
+    md = make_problem_markdown(html_content, "en")
+
+    if set_api_key() is None:
+        return
+    gpt = ChatGPT(
+        system_prompt=f"""You are a highly skilled programmer. Your role is to create a template code for competitive programming.The user will provide you with a problem from a programming contest called AtCoder, including the Problem, Constraints, Input, Output, Input Example, and Output Example. While you should consider the entire problem, you should pay particular attention to the Input, Input Example sections to create the template.The purpose is to handle the boring parts of the problem that are not directly related to the problem’s logic, such as receiving arguments, defining variables, or defining constants necessary for output, on behalf of the competitor. You should create a template in {lang2str(lang)} that maximizes assistance to the competitor, considering the problem statement. However, you should not solve the problem.""",
+        temperature=0.0,
+    )
+
+    reply = gpt.tell(md)
+    code = get_code_from_gpt_output(reply)
+    print(f"AI利用にかかったAPIコスト：{gpt.sum_cost}")
+
+    savaed_filename = os.path.splitext(file)[0] + FILE_EXTENSIONS[lang]
+    with open(savaed_filename, "w") as f:
+        f.write(code)
+
+
+def solve_problem(file: Filename, lang: Lang) -> None:
+
+    with open(file, "r") as f:
+        html_content = f.read()
+    md = make_problem_markdown(html_content, "en")
+
+    if set_api_key() is None:
+        return
+    gpt = ChatGPT(
+        system_prompt=f"""You are a brilliant programmer. Your task is to solve an AtCoder problem. AtCoder is a platform that hosts programming competitions where participants write programs to solve algorithmic challenges.Please solve the problem in {lang2str(lang)}.""",
+    )
+    reply = gpt.tell(md)
+    code = get_code_from_gpt_output(reply)
+
+    savaed_filename = os.path.splitext(file)[0] + FILE_EXTENSIONS[lang]
+    with open(savaed_filename, "w") as f:
+        f.write(code)
 
 
 def generate(
     *source: str,
-    lang: str = "python",
+    lang: str = "Python",
     without_test: bool = False,
-    template: bool = False
+    template: bool = False,
 ) -> None:
+
+    la = str2lang(lang)
 
     if template:
         execute_files(
             *source,
-            func=lambda file: generate_template(file, lang),
-            target_filetypes=[FileExtension.HTML]
+            func=lambda file: generate_template(file, la),
+            target_filetypes=[Lang.HTML],
         )
     elif without_test:
         execute_files(
             *source,
-            func=lambda file: generate_code(file, lang),
-            target_filetypes=[FileExtension.HTML]
+            func=lambda file: generate_code(file, la),
+            target_filetypes=[Lang.HTML],
         )
     else:
         execute_files(
             *source,
-            func=lambda file: solve_problem(file, lang),
-            target_filetypes=[FileExtension.HTML]
+            func=lambda file: solve_problem(file, la),
+            target_filetypes=[Lang.HTML],
         )
-
-    # 適切なプロンプトを作成してGPTに与える
-
-    # GPTからの返答に対して解答ファイルを作成する
-
-    # 解答ファイルをテストする
-
-    # テスト結果をパスした場合はパスしたファイルを保存する
-    # しなかった場合は, その結果をプロンプトに与えて,再度ファイルをGPTに解答ファイルをつくってもらう
-
-    pass
