@@ -27,7 +27,7 @@ class Currency:
     def get_exchange_rate() -> float:
         ticker = yf.Ticker("USDJPY=X")
         todays_data = ticker.history(period="1d")
-        return todays_data["Close"][0]
+        return todays_data["Close"].iloc[0]
 
     def convert_usd_to_jpy(self, usd: float) -> float:
         return usd * self._exchange_rate
