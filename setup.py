@@ -24,7 +24,6 @@ setup(
             "mypy",
             "pre-commit",
             "pytest",
-            # 他の開発者向けの依存関係
         ],
     },
     include_package_data=True,
