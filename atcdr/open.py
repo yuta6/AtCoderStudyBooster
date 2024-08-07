@@ -2,7 +2,7 @@ import webbrowser
 
 from bs4 import BeautifulSoup as bs
 
-from atcdr.util.filename import FileExtension, execute_files
+from atcdr.util.filename import Lang, execute_files
 
 
 def find_link_from(html: str) -> str | None:
@@ -29,4 +29,4 @@ def open_html(file: str) -> None:
 
 
 def open_files(*args: str) -> None:
-    execute_files(*args, func=open_html, target_filetypes=[FileExtension.HTML])
+    execute_files(*args, func=open_html, target_filetypes=[Lang.HTML])
