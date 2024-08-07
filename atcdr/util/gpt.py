@@ -80,7 +80,7 @@ class ChatGPT:
         self.messages.append({"role": "user", "content": message})
 
         settings = {
-            "model": self.model,
+            "model": self.model.value,
             "messages": self.messages,
             "max_tokens": self.max_tokens,
             "temperature": self.temperature,
