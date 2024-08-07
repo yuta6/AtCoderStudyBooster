@@ -4,7 +4,10 @@ from typing import Optional
 import tiktoken
 import yfinance as yf
 
-from .gpt import Model
+
+class Model(Enum):
+    GPT4O = "gpt-4o"
+    GPT4O_MINI = "gpt-4o-mini"
 
 
 class CostType(Enum):

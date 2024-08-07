@@ -1,15 +1,9 @@
 import os
-from enum import Enum
 from typing import Dict, List, Optional
 
 import requests  # type: ignore
 
-from .cost import CostType, Currency, Rate
-
-
-class Model(Enum):
-    GPT4O = "gpt-4o"
-    GPT4O_MINI = "gpt-4o-mini"
+from .cost import CostType, Currency, Model, Rate
 
 
 def set_api_key() -> Optional[str]:
