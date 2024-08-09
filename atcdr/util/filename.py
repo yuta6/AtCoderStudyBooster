@@ -90,7 +90,6 @@ def lang2str(lang: Lang) -> str:
 def execute_files(
     *args: str, func: Callable[[Filename], None], target_filetypes: List[Lang]
 ) -> None:
-
     target_extensions = [FILE_EXTENSIONS[lang] for lang in target_filetypes]
 
     files = [

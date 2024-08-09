@@ -20,14 +20,12 @@ from atcdr.util.problem import make_problem_markdown
 
 
 def get_code_from_gpt_output(output: str) -> str:
-
     pattern = re.compile(r"```(?:\w+)?\s*(.*?)\s*```", re.DOTALL)
     match = pattern.search(output)
     return match.group(1) if match else ""
 
 
 def generate_code(file: Filename, lang: Lang) -> None:
-
     with open(file, "r") as f:
         html_content = f.read()
     md = make_problem_markdown(html_content, "en")
@@ -50,7 +48,6 @@ def generate_code(file: Filename, lang: Lang) -> None:
 
 
 def generate_template(file: Filename, lang: Lang) -> None:
-
     with open(file, "r") as f:
         html_content = f.read()
     md = make_problem_markdown(html_content, "en")
@@ -72,7 +69,6 @@ def generate_template(file: Filename, lang: Lang) -> None:
 
 
 def solve_problem(file: Filename, lang: Lang) -> None:
-
     with open(file, "r") as f:
         html_content = f.read()
     md = make_problem_markdown(html_content, "en")
@@ -86,7 +82,6 @@ def solve_problem(file: Filename, lang: Lang) -> None:
     reply = gpt.tell(md)
 
     for i in range(8):
-
         code = get_code_from_gpt_output(reply)
 
         saved_filename = os.path.splitext(file)[0] + FILE_EXTENSIONS[lang]
@@ -116,7 +111,6 @@ def generate(
     without_test: bool = False,
     template: bool = False,
 ) -> None:
-
     la = str2lang(lang)
 
     if template:

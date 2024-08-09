@@ -97,7 +97,6 @@ class Rate:
 
 
 class ApiCostCalculator:
-
     def __init__(self, text: str, cost_type: CostType, model: Model) -> None:
         self.text = text
         self.cost_type = cost_type

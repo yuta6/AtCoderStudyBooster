@@ -13,7 +13,6 @@ class Lang(Enum):
 
 
 class ProblemStruct:
-
     def __init__(self) -> None:
         self.problem_part: Optional[str] = None
         self.condition_part: Optional[str] = None
@@ -21,7 +20,6 @@ class ProblemStruct:
         self.test_part: Optional[list[str]] = None
 
     def divide_problem_part(self, task_statement: bs) -> None:
-
         parts = task_statement.find_all("div", {"class": "part"})
 
         self.problem_part = str(parts[0])
@@ -36,7 +34,6 @@ class ProblemStruct:
 
 
 class CustomMarkdownConverter(MarkdownConverter):
-
     def convert_var(self, el, text, convert_as_inline):
         var_text = el.text.strip()
         return f"\\({var_text}\\)"
