@@ -18,7 +18,7 @@ pip install -r requirements.txt
 pip install -e '.[dev]'
 
 # pre-commitのインストールと設定
-pre-commit clear
+pre-commit clean
 pre-commit install
 pre-commit autoupdate
 
