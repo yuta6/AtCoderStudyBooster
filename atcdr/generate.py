@@ -41,7 +41,7 @@ def generate_code(file: Filename, lang: Lang) -> None:
     print(f"AI利用にかかったAPIコスト: {gpt.sum_cost}")
 
     saved_filename = (
-        os.path.splitext(file)[0] + f"by_{gpt.model}" + FILE_EXTENSIONS[lang]
+        os.path.splitext(file)[0] + f"by_{gpt.model.value}" + FILE_EXTENSIONS[lang]
     )
     with open(saved_filename, "w") as f:
         print(f"コードを保存しました：{saved_filename}")
@@ -64,9 +64,7 @@ def generate_template(file: Filename, lang: Lang) -> None:
     code = get_code_from_gpt_output(reply)
     print(f"AI利用にかかったAPIコスト:{gpt.sum_cost}")
 
-    savaed_filename = (
-        os.path.splitext(file)[0] + f"_by_{gpt.model}" + FILE_EXTENSIONS[lang]
-    )
+    savaed_filename = os.path.splitext(file)[0] + FILE_EXTENSIONS[lang]
     with open(savaed_filename, "w") as f:
         f.write(code)
 
@@ -92,7 +90,10 @@ def solve_problem(file: Filename, lang: Lang) -> None:
         code = get_code_from_gpt_output(reply)
 
         saved_filename = (
-            f"{i}_" + file_without_ext + f"_by_{gpt.model}" + FILE_EXTENSIONS[lang]
+            f"{i}_"
+            + file_without_ext
+            + f"_by_{gpt.model.value}"
+            + FILE_EXTENSIONS[lang]
         )
         with open(saved_filename, "w") as f:
             f.write(code)
