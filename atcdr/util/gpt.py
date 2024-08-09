@@ -24,7 +24,7 @@ def set_api_key() -> Optional[str]:
         if input() == "y":
             zshrc_path = os.path.expanduser("~/.zshrc")
             with open(zshrc_path, "a") as f:
-                f.write(f'export OPENAI_API_KEY="{api_key}"\n')
+                f.write(f"export OPENAI_API_KEY={api_key}\n")
             print(
                 f"APIキーを {zshrc_path} に保存しました。次回シェル起動時に読み込まれます。"
             )
