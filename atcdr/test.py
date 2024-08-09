@@ -47,6 +47,8 @@ class TestCaseResult:
 @dataclass
 class LabeledTestCaseResult:
     label: str
+    testcase: TestCase
+    # TODO : 実はラベル自体を使わない方がいいかもしれない.ラベルという概念が削除してプリントするときに適当にTest1, Test2と適当に名前をつけてもいいかも.
     result: TestCaseResult
 
 
@@ -206,7 +208,8 @@ def judge_code_from(
         raise ValueError(f"ランナーが見つかりませんでした。指定されたパス: {path}")
 
     return [
-        LabeledTestCaseResult(lcase.label, runner(path, lcase.case)) for lcase in lcases
+        LabeledTestCaseResult(lcase.label, lcase.case, runner(path, lcase.case))
+        for lcase in lcases
     ]
 
 
@@ -217,6 +220,7 @@ CROSS_MARK = "\u00d7"
 def render_result(lresult: LabeledTestCaseResult) -> str:
     output = f"{Fore.CYAN}{lresult.label} of Test:\n"
     result = lresult.result
+    testcase = lresult.testcase
 
     if result.passed == ResultStatus.AC:
         output += (
@@ -225,7 +229,7 @@ def render_result(lresult: LabeledTestCaseResult) -> str:
     elif result.passed == ResultStatus.WA:
         output += (
             Fore.RED
-            + f"{CROSS_MARK} Wrong Answer ! Time: {result.executed_time} ms\n  Output:\n{result.output}\n"
+            + f"{CROSS_MARK} Wrong Answer ! Time: {result.executed_time} ms\nInput:\n{testcase.input}\nOutput:\n{result.output}\nExpected Output:\n{testcase.output}\n"
         )
     elif result.passed == ResultStatus.RE:
         output += Fore.YELLOW + f"[RE] Runtime Error\n  Output:\n{result.output}"
