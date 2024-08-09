@@ -18,9 +18,7 @@ setup(
     install_requires=parse_requirements("requirements.txt"),
     extras_require={
         "dev": [
-            "black",
-            "isort",
-            "flake8",
+            "ruff",
             "mypy",
             "pre-commit",
             "pytest",
