@@ -97,9 +97,3 @@ class ChatGPT:
         )
 
         return reply
-
-
-if __name__ == "__main__":
-    set_api_key()
-    print("-" * 20)
-    print(ChatGPT().tell("こんにちは！日本語で簡単に自己紹介してください"))
