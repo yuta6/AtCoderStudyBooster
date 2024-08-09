@@ -7,7 +7,6 @@ from atcdr.util.cost import CostType, Currency, Model, Rate
 
 
 def set_api_key() -> Optional[str]:
-
     api_key = os.getenv("OPENAI_API_KEY")
     if api_key and validate_api_key(api_key):
         return api_key
@@ -21,7 +20,7 @@ def set_api_key() -> Optional[str]:
     )
     if validate_api_key(api_key):
         print("APIキーのテストに成功しました。")
-        os.environ["CHATGPT_API_KEY"] = api_key
+        os.environ["OPENAI_API_KEY"] = api_key
         return api_key
     else:
         print("コード生成にはAPIキーが必要です。")
@@ -29,7 +28,6 @@ def set_api_key() -> Optional[str]:
 
 
 def validate_api_key(api_key: str) -> bool:
-
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {api_key}",
@@ -45,7 +43,6 @@ def validate_api_key(api_key: str) -> bool:
 
 
 class ChatGPT:
-
     API_URL = "https://api.openai.com/v1/chat/completions"
 
     # APIの使い方 https://platform.openai.com/docs/api-reference/making-requests
@@ -58,7 +55,6 @@ class ChatGPT:
         messages: Optional[List[Dict[str, str]]] = None,
         system_prompt: str = "You are a helpful assistant.",
     ) -> None:
-
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
         self.model = model
         self.max_tokens = max_tokens
@@ -72,11 +68,10 @@ class ChatGPT:
         self.sum_cost: Currency = Currency(usd=0)
         self.__headers = {
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {api_key}",
+            "Authorization": f"Bearer {self.api_key}",
         }
 
     def tell(self, message: str) -> str:
-
         self.messages.append({"role": "user", "content": message})
 
         settings = {
@@ -102,3 +97,9 @@ class ChatGPT:
         )
 
         return reply
+
+
+if __name__ == "__main__":
+    set_api_key()
+    print("-" * 20)
+    print(ChatGPT().tell("こんにちは！日本語で簡単に自己紹介してください"))
