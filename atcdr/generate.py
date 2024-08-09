@@ -1,5 +1,6 @@
 import os
 import re
+import json
 
 from atcdr.test import (
     ResultStatus,
@@ -37,7 +38,7 @@ def generate_code(file: Filename, lang: Lang) -> None:
     )
     reply = gpt.tell(md)
     code = get_code_from_gpt_output(reply)
-    print(f"AI利用にかかったAPIコスト：{gpt.sum_cost}")
+    print(f"AI利用にかかったAPIコスト: {gpt.sum_cost}")
 
     saved_filename = (
         os.path.splitext(file)[0] + f"by_{gpt.model}" + FILE_EXTENSIONS[lang]
@@ -61,9 +62,11 @@ def generate_template(file: Filename, lang: Lang) -> None:
 
     reply = gpt.tell(md)
     code = get_code_from_gpt_output(reply)
-    print(f"AI利用にかかったAPIコスト：{gpt.sum_cost}")
+    print(f"AI利用にかかったAPIコスト:{gpt.sum_cost}")
 
-    savaed_filename = os.path.splitext(file)[0] + FILE_EXTENSIONS[lang]
+    savaed_filename = (
+        os.path.splitext(file)[0] + f"_by_{gpt.model}" + FILE_EXTENSIONS[lang]
+    )
     with open(savaed_filename, "w") as f:
         f.write(code)
 
@@ -76,15 +79,21 @@ def solve_problem(file: Filename, lang: Lang) -> None:
 
     if set_api_key() is None:
         return
+
+    file_without_ext = os.path.splitext(file)[0]
+
     gpt = ChatGPT(
         system_prompt=f"""You are a brilliant programmer. Your task is to solve an AtCoder problem. AtCoder is a platform that hosts programming competitions where participants write programs to solve algorithmic challenges.Please solve the problem in {lang2str(lang)}.""",
     )
+
     reply = gpt.tell(md)
 
     for i in range(1, 4):
         code = get_code_from_gpt_output(reply)
 
-        saved_filename = os.path.splitext(file)[0] + FILE_EXTENSIONS[lang]
+        saved_filename = (
+            file_without_ext + f"_by_{gpt.model}_try{i}" + FILE_EXTENSIONS[lang]
+        )
         with open(saved_filename, "w") as f:
             f.write(code)
 
@@ -104,6 +113,10 @@ Please provide an updated version of the code in {lang2str(lang)}.""")
             for labeled_result in labeled_results
         ):
             print("コードのテストに成功!")
+            with open(
+                file_without_ext + f"_by_{gpt.model}" + FILE_EXTENSIONS[Lang.JSON], "w"
+            ) as f:
+                f.write(json.dumps(gpt.messages, indent=2))
             break
         else:
             pass

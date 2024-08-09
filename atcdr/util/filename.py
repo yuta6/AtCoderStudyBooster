@@ -20,6 +20,7 @@ class Lang(Enum):
     RUST = "Rust"
     HTML = "HTML"
     MARKDOWN = "markdown"
+    JSON = "json"
 
 
 # ファイル拡張子と対応する言語の辞書
@@ -36,11 +37,13 @@ FILE_EXTENSIONS: Dict[Lang, Extension] = {
     Lang.RUST: ".rs",
     Lang.HTML: ".html",
     Lang.MARKDOWN: ".md",
+    Lang.JSON: ".json",
 }
 
 DOCUMENT_LANGUAGES: List[Lang] = [
     Lang.HTML,
     Lang.MARKDOWN,
+    Lang.JSON,
 ]
 
 # ソースコードファイルと言語のリスト
@@ -79,6 +82,7 @@ def str2lang(lang: str) -> Lang:
         "html": Lang.HTML,
         "md": Lang.MARKDOWN,
         "markdown": Lang.MARKDOWN,
+        "json": Lang.JSON,
     }
     return lang_map[lang.lower()]
 
