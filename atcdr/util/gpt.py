@@ -20,11 +20,14 @@ def set_api_key() -> Optional[str]:
     )
     if validate_api_key(api_key):
         print("APIキーのテストに成功しました。")
-        print("以下, .zshrcにAPIキーを保存しますか? [y/n]")
+        print("以下, ~/.zshrcにAPIキーを保存しますか? [y/n]")
         if input() == "y":
-            with open(".zshrc", "a") as f:
+            zshrc_path = os.path.expanduser("~/.zshrc")
+            with open(zshrc_path, "a") as f:
                 f.write(f'export OPENAI_API_KEY="{api_key}"\n')
-            print("APIキーを.zshrcに保存しました.\n 次回シェル起動時に読み込まれます.")
+            print(
+                f"APIキーを {zshrc_path} に保存しました。次回シェル起動時に読み込まれます。"
+            )
         os.environ["OPENAI_API_KEY"] = api_key
         return api_key
     else:
