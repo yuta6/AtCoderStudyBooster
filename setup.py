@@ -18,13 +18,10 @@ setup(
     install_requires=parse_requirements("requirements.txt"),
     extras_require={
         "dev": [
-            "black",
-            "isort",
-            "flake8",
+            "ruff",
             "mypy",
             "pre-commit",
             "pytest",
-            # 他の開発者向けの依存関係
         ],
     },
     include_package_data=True,
