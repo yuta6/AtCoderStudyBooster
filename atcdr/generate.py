@@ -81,7 +81,7 @@ def solve_problem(file: Filename, lang: Lang) -> None:
     )
     reply = gpt.tell(md)
 
-    for i in range(8):
+    for i in range(1, 4):
         code = get_code_from_gpt_output(reply)
 
         saved_filename = os.path.splitext(file)[0] + FILE_EXTENSIONS[lang]
@@ -94,15 +94,21 @@ def solve_problem(file: Filename, lang: Lang) -> None:
         print(f"{i}回目のコード生成でのテスト結果:---")
         print(test_report)
 
+        reply = gpt.tell(f"""
+The following is the test report for the code you provided:
+{test_report}
+Please provide an updated version of the code in {lang2str(lang)}.""")
+
         if all(
             labeled_result.result.passed == ResultStatus.AC
             for labeled_result in labeled_results
         ):
             print("コードのテストに成功!")
-            print(f"AI利用にかかったAPIコスト：{gpt.sum_cost}")
             break
         else:
             pass
+
+    print(f"AI利用にかかったAPIコスト：{gpt.sum_cost}")
 
 
 def generate(
