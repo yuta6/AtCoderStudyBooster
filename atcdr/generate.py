@@ -92,7 +92,7 @@ def solve_problem(file: Filename, lang: Lang) -> None:
         code = get_code_from_gpt_output(reply)
 
         saved_filename = (
-            file_without_ext + f"_by_{gpt.model}_try{i}" + FILE_EXTENSIONS[lang]
+            f"{i}_" + file_without_ext + f"_by_{gpt.model}" + FILE_EXTENSIONS[lang]
         )
         with open(saved_filename, "w") as f:
             f.write(code)
@@ -114,7 +114,11 @@ Please provide an updated version of the code in {lang2str(lang)}.""")
         ):
             print("コードのテストに成功!")
             with open(
-                file_without_ext + f"_by_{gpt.model}" + FILE_EXTENSIONS[Lang.JSON], "w"
+                "log_"
+                + file_without_ext
+                + f"_by_{gpt.model}"
+                + FILE_EXTENSIONS[Lang.JSON],
+                "w",
             ) as f:
                 f.write(json.dumps(gpt.messages, indent=2))
             break
