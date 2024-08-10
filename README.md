@@ -42,10 +42,10 @@ MarkdownファイルあるいはHTMLファイルをVS CodeのHTML Preview, Markd
 
 ```sh
 cd B/224
-▷ B/224
 ```
 
 移動したフォルダーで解答ファイルを作成後を実行すると, 自動的にテストします。
+
 ```sh
 ▷ ~/.../B/224
 atcdr t
@@ -61,4 +61,5 @@ Sample 1 of Test:
 Sample 2 of Test:
 ✓ Accepted !! Time: 15 ms
 ```
+
 と実行すると作成したソースコードをテストして、HTMLに書かれているテストケースを読み込んで実行し, Passするかを判定します。
