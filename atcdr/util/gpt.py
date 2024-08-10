@@ -90,9 +90,14 @@ class ChatGPT:
         }
 
         response = requests.post(self.API_URL, headers=self.__headers, json=settings)
-
         response = response.json()
-        reply = response["choices"][0]["message"]["content"]
+        try:
+            reply = response["choices"][0]["message"]["content"]
+        except KeyError:
+            print("Error:レスポンスの形式が正しくありません. \n" + str(response))
+            return "Error: Unable to retrieve response."
+
+        self.messages.append({"role": "assistant", "content": reply})
 
         usage = response["usage"]
         input_tokens = usage.get("prompt_tokens", 0)

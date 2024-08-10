@@ -123,7 +123,8 @@ def solve_problem(file: Filename, lang: Lang) -> None:
 {test_report}
 Please provide an updated version of the code in {lang2str(lang)}.""")
 
-    print(f"AI利用にかかったAPIコスト：{gpt.sum_cost}")
+    print(f"AI利用にかかったAPIコスト:{gpt.sum_cost}")
+    return
 
 
 def generate(
