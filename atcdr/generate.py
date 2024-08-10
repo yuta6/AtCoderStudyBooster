@@ -112,7 +112,7 @@ def solve_problem(file: Filename, lang: Lang) -> None:
             with open(
                 "log_"
                 + file_without_ext
-                + f"_by_{gpt.model}"
+                + f"_by_{gpt.model.value}"
                 + FILE_EXTENSIONS[Lang.JSON],
                 "w",
             ) as f:
