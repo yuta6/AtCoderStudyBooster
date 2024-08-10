@@ -57,11 +57,20 @@ def generate_template(file: Filename, lang: Lang) -> None:
     if set_api_key() is None:
         return
     gpt = ChatGPT(
-        system_prompt=f"""You are a highly skilled programmer. Your role is to create a template code for competitive programming.The user will provide you with a problem from a programming contest called AtCoder, including the Problem, Constraints, Input, Output, Input Example, and Output Example. While you should consider the entire problem, you should pay particular attention to the Input, Input Example sections to create the template.The purpose is to handle the boring parts of the problem that are not directly related to the problem’s logic, such as receiving arguments, defining variables, or defining constants necessary for output, on behalf of the competitor. You should create a template in {lang2str(lang)} that maximizes assistance to the competitor, considering the problem statement. However, you should not solve the problem.""",
+        system_prompt="You are a highly skilled programmer. Your role is to create a template code for competitive programming.",
         temperature=0.0,
     )
 
-    reply = gpt.tell(md)
+    propmpt = f"""
+The user will provide a problem from a programming contest called AtCoder. This problem will include the Problem Statement, Constraints, Input, Output, Input Example, and Output Example. You should focus on the Constraints and Input sections to create the template in {lang2str(lang)}.
+
+- First, create the part of the code that handles input. Then, you should read ###Input Block and ###Constraints Block.
+- After receiving the input, define variables in the program by reading ###Constraints Block and explain how to use the variables in the comment of your code block with example.
+- Last, define variables needed for output. Then you should read ###Output Block and ###Constraints Block.
+
+You must not solve the problem. Please faithfully reproduce the variable names defined in the problem.
+    """
+    reply = gpt.tell(md + propmpt)
     code = get_code_from_gpt_output(reply)
     print(f"AI利用にかかったAPIコスト:{gpt.sum_cost}")
 
