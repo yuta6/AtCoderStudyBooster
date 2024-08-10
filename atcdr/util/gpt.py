@@ -93,8 +93,8 @@ class ChatGPT:
 
         response = response.json()
         reply = response["choices"][0]["message"]["content"]
-        usage = response["usage"]
 
+        usage = response["usage"]
         input_tokens = usage.get("prompt_tokens", 0)
         output_tokens = usage.get("completion_tokens", 0)
         self.sum_cost += Rate.calc_cost(

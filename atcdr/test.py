@@ -229,7 +229,7 @@ def render_result(lresult: LabeledTestCaseResult) -> str:
     elif result.passed == ResultStatus.WA:
         output += (
             Fore.RED
-            + f"{CROSS_MARK} Wrong Answer ! Time: {result.executed_time} ms\nInput:\n{testcase.input}\nOutput:\n{result.output}\nExpected Output:\n{testcase.output}\n"
+            + f"{CROSS_MARK} Wrong Answer ! Time: {result.executed_time} ms\nOutput:\n{result.output}\nExpected Output:\n{testcase.output}\n"
         )
     elif result.passed == ResultStatus.RE:
         output += Fore.YELLOW + f"[RE] Runtime Error\n  Output:\n{result.output}"

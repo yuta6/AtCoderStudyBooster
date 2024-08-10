@@ -104,11 +104,6 @@ def solve_problem(file: Filename, lang: Lang) -> None:
         print(f"{i}回目のコード生成でのテスト結果:---")
         print(test_report)
 
-        reply = gpt.tell(f"""
-The following is the test report for the code you provided:
-{test_report}
-Please provide an updated version of the code in {lang2str(lang)}.""")
-
         if all(
             labeled_result.result.passed == ResultStatus.AC
             for labeled_result in labeled_results
@@ -124,7 +119,9 @@ Please provide an updated version of the code in {lang2str(lang)}.""")
                 f.write(json.dumps(gpt.messages, indent=2))
             break
         else:
-            pass
+            reply = gpt.tell(f"""The following is the test report for the code you provided:
+{test_report}
+Please provide an updated version of the code in {lang2str(lang)}.""")
 
     print(f"AI利用にかかったAPIコスト：{gpt.sum_cost}")
 
