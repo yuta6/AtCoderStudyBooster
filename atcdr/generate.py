@@ -109,20 +109,20 @@ def solve_problem(file: Filename, lang: Lang) -> None:
             for labeled_result in labeled_results
         ):
             print("コードのテストに成功!")
-            with open(
-                "log_"
-                + file_without_ext
-                + f"_by_{gpt.model.value}"
-                + FILE_EXTENSIONS[Lang.JSON],
-                "w",
-            ) as f:
-                f.write(json.dumps(gpt.messages, indent=2))
             break
         else:
             reply = gpt.tell(f"""The following is the test report for the code you provided:
 {test_report}
 Please provide an updated version of the code in {lang2str(lang)}.""")
 
+    with open(
+        "log_"
+        + file_without_ext
+        + f"_by_{gpt.model.value}"
+        + FILE_EXTENSIONS[Lang.JSON],
+        "w",
+    ) as f:
+        f.write(json.dumps(gpt.messages, indent=2))
     print(f"AI利用にかかったAPIコスト:{gpt.sum_cost}")
     return
 
