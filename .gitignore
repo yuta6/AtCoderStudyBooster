@@ -1,20 +1,43 @@
-# すべてのファイルを無視する
-*
-
-# ただし, 以下のファイルは無視しない
-!*.py
-!*.md
-!*.txt
-!.gitignore
-!*.yaml
-!.vscode/*
-!setup.sh
-!setup.cfg
-
-!*/
-
-# Ignore specific directories
-AtCoderStudyBooster.egg-info/
-build/
-venv/
+# Pythonのバイトコードファイル
 __pycache__/
+*.py[cod]
+
+# ビルドディレクトリ
+build/
+dist/
+*.egg-info/
+
+# Python仮想環境
+venv/
+env/
+*.venv/
+
+# コンパイルされたファイル
+*.so
+*.dylib
+*.dll
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# 環境依存のファイル
+*.env
+.env
+
+# IDE/エディタの設定ファイル
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 一時ファイル
+*.log
+*.tmp
+*.bak
+
+# デバッグファイル
+*.pdb
+
+# OS固有の隠しファイル
+.DS_Store
+Thumbs.db
