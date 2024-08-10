@@ -15,6 +15,7 @@ class Diff(Enum):
     D = "D"
     E = "E"
     F = "F"
+    G = "G"
 
 
 @dataclass
