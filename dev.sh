@@ -14,8 +14,7 @@ source venv/bin/activate
 
 # 必要なパッケージをインストール
 pip install --upgrade pip
-pip install -r requirements.txt
-pip install -e '.[dev]'
+pip install -e .[dev]
 
 # pre-commitのインストールと設定
 pre-commit clean

@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "AtCoderStudyBooster"
+version = "0.1"
+description = "A tool to download and manage AtCoder problems."
+authors = [{ name = "yuta6" }]
+readme = "README.md"
+license = { text = "MIT" }
+urls = { Homepage = "https://github.com/yuta6/AtCoderStudyBooster" }
+dependencies = [
+    "beautifulsoup4>=4.12.3",
+    "colorama>=0.4.6",
+    "fire>=0.6.0",
+    "requests>=2.32.3",
+    "tiktoken>=0.7.0",
+    "yfinance>=0.2.41",
+]
+
+
+[project.optional-dependencies]
+dev = [
+    "ruff",
+    "mypy",
+    "pre-commit",
+    "pytest"
+]
+
+[project.scripts]
+atcdr = "atcdr.main:main"
