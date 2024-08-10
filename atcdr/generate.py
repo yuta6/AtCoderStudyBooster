@@ -42,10 +42,10 @@ def generate_code(file: Filename, lang: Lang) -> None:
     print(f"AI利用にかかったAPIコスト: {gpt.sum_cost}")
 
     saved_filename = (
-        os.path.splitext(file)[0] + f"by_{gpt.model.value}" + FILE_EXTENSIONS[lang]
+        os.path.splitext(file)[0] + f"_by_{gpt.model.value}" + FILE_EXTENSIONS[lang]
     )
     with open(saved_filename, "w") as f:
-        print(f"コードを保存しました：{saved_filename}")
+        print(f"[+]:{gpt.model.value}の出力したコードを保存しました：{f.name}")
         f.write(code)
 
 
@@ -67,6 +67,7 @@ def generate_template(file: Filename, lang: Lang) -> None:
 
     savaed_filename = os.path.splitext(file)[0] + FILE_EXTENSIONS[lang]
     with open(savaed_filename, "w") as f:
+        print(f"[+]:テンプレートファイル{savaed_filename}を作成しました.")
         f.write(code)
 
 
@@ -96,6 +97,7 @@ def solve_problem(file: Filename, lang: Lang) -> None:
             + FILE_EXTENSIONS[lang]
         )
         with open(saved_filename, "w") as f:
+            print(f"[+]:{gpt.model.value}の出力したコードを保存しました：{f.name}")
             f.write(code)
 
         labeled_results = judge_code_from(labeled_cases, saved_filename)
@@ -122,6 +124,7 @@ Please provide an updated version of the code in {lang2str(lang)}.""")
         + FILE_EXTENSIONS[Lang.JSON],
         "w",
     ) as f:
+        print(f"[+]:{gpt.model.value}の出力のログを保存しました：{f.name}")
         f.write(json.dumps(gpt.messages, indent=2))
     print(f"AI利用にかかったAPIコスト:{gpt.sum_cost}")
     return
