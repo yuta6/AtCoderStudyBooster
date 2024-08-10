@@ -36,6 +36,7 @@ def generate_code(file: Filename, lang: Lang) -> None:
     gpt = ChatGPT(
         system_prompt=f"""You are an excellent programmer. You solve problems in competitive programming.When a user provides you with a problem from a programming contest called AtCoder, including the Problem,Constraints, Input, Output, Input Example, and Output Example, please carefully consider these and solve the problem.Make sure that your output code block contains no more than two blocks. Pay close attention to the Input, Input Example, Output, and Output Example.Create the solution in {lang2str(lang)}.""",
     )
+
     reply = gpt.tell(md)
     code = get_code_from_gpt_output(reply)
     print(f"AI利用にかかったAPIコスト: {gpt.sum_cost}")
@@ -77,12 +78,11 @@ def solve_problem(file: Filename, lang: Lang) -> None:
 
     if set_api_key() is None:
         return
-
-    file_without_ext = os.path.splitext(file)[0]
-
     gpt = ChatGPT(
         system_prompt=f"""You are a brilliant programmer. Your task is to solve an AtCoder problem. AtCoder is a platform that hosts programming competitions where participants write programs to solve algorithmic challenges.Please solve the problem in {lang2str(lang)}.""",
     )
+
+    file_without_ext = os.path.splitext(file)[0]
 
     reply = gpt.tell(md)
 
