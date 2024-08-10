@@ -7,6 +7,8 @@ from typing import Callable, List, Match, Optional, Union, cast
 
 import requests  # type: ignore
 
+from atcdr.util.problem import make_problem_markdown
+
 
 class Diff(Enum):
     A = "A"
@@ -82,10 +84,10 @@ def get_title_from_html(html: str) -> Optional[str]:
     return None
 
 
-def save_html(file_path: str, html: str) -> None:
+def save_file(file_path: str, html: str) -> None:
     with open(file_path, "w", encoding="utf-8") as file:
         file.write(html)
-    print(f"[+] 問題を保存しました :{file_path}")
+    print(f"[+] ファイルを保存しました :{file_path}")
 
 
 def mkdir(path: str) -> None:
@@ -122,8 +124,10 @@ def generate_problem_directory(
         mkdir(dir_path)
         repaired_html = repair_html(html)
 
-        file_path = os.path.join(dir_path, f"{title}.html")
-        save_html(file_path, repaired_html)
+        html_path = os.path.join(dir_path, f"{title}.html")
+        save_file(html_path, repaired_html)
+        md = make_problem_markdown(html, "ja")
+        save_file(os.path.join(dir_path, f"{title}.md"), md)
 
 
 def parse_range(range_str: str) -> List[int]:
