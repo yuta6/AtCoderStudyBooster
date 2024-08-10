@@ -2,7 +2,7 @@
 
 ## 概要
 
-AtCoderStudyBoosterはAtCoderの問題をローカルにダウンロード、テスト、提出、解答の作成をサポートするツールです。Pythonが入っていることが必須で、Pythonが入っている環境なら、`pip install AtCoderStudyBooster`でインストールできます。
+AtCoderStudyBoosterはAtCoderの学習を加速させるためのツールです。問題をローカルにダウンロード、テスト、解答の作成をサポートするツールです。Pythonが入っていることが必須です。Pythonが入っている環境なら、`pip install AtCoderStudyBooster`でインストールできます。
 
 ## 利用ケース
 
