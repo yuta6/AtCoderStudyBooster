@@ -36,3 +36,12 @@ allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["atcdr"]
+
+[tool.ruff.lint]
+select = ["E", "F"]  # チェックするコードの種類 (E: エラー, F: フォーマッティング)
+ignore = ["E501"]  # E501 - 行の長さ制限を無視
+
+[tool.ruff.format]
+quote-style = "single"
+indent-style = "tab"
+docstring-code-format = true

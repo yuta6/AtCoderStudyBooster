@@ -28,7 +28,6 @@ env/
 .env
 
 # IDE/エディタの設定ファイル
-.vscode/
 .idea/
 *.swp
 *.swo
