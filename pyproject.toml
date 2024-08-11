@@ -1,32 +1,38 @@
-[build-system]
-requires = ["setuptools>=42", "wheel"]
-build-backend = "setuptools.build_meta"
-
 [project]
 name = "AtCoderStudyBooster"
-version = "0.1"
+version = "0.1.0"
 description = "A tool to download and manage AtCoder problems."
-authors = [{ name = "yuta6" }]
-readme = "README.md"
-license = { text = "MIT" }
-urls = { Homepage = "https://github.com/yuta6/AtCoderStudyBooster" }
-dependencies = [
-    "beautifulsoup4>=4.12.3",
-    "colorama>=0.4.6",
-    "fire>=0.6.0",
-    "requests>=2.32.3",
-    "tiktoken>=0.7.0",
-    "yfinance>=0.2.41",
+authors = [
+    { name = "yuta6", email = "46110512+yuta6@users.noreply.github.com" }
 ]
+dependencies = [
+    "beautifulsoup4",
+    "colorama",
+    "fire",
+    "requests",
+    "tiktoken",
+    "yfinance",
+]
+readme = "README.md"
+requires-python = ">= 3.8"
 
+[project.scripts]
+"atcdr" = "atcdr:main"
 
-[project.optional-dependencies]
-dev = [
-    "ruff",
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.rye]
+managed = true
+dev-dependencies = [
     "mypy",
     "pre-commit",
     "pytest"
 ]
 
-[project.scripts]
-atcdr = "atcdr.main:main"
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["atcdr"]

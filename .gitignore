@@ -1,13 +1,16 @@
 # Pythonのバイトコードファイル
 __pycache__/
 *.py[cod]
+*.py[oc]
 
 # ビルドディレクトリ
 build/
 dist/
+wheels/
 *.egg-info/
 
 # Python仮想環境
+.venv
 venv/
 env/
 *.venv/
