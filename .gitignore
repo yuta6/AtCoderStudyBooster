@@ -43,3 +43,6 @@ env/
 # OS固有の隠しファイル
 .DS_Store
 Thumbs.db
+
+# キャッシュファイル
+.*_cache
