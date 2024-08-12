@@ -2,7 +2,8 @@ import re
 from enum import Enum
 from typing import Optional, Union
 
-from bs4 import BeautifulSoup as bs, Tag, NavigableString
+from bs4 import BeautifulSoup as bs
+from bs4 import NavigableString, Tag
 from markdownify import MarkdownConverter  # type: ignore
 
 

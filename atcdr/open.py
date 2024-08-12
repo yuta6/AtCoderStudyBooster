@@ -1,11 +1,9 @@
 import webbrowser
 
 from bs4 import BeautifulSoup as bs
+from bs4.element import Tag
 
 from atcdr.util.filename import Lang, execute_files
-
-
-from bs4.element import Tag
 
 
 def find_link_from(html: str) -> str | None:
