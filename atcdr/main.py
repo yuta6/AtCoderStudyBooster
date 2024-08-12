@@ -1,9 +1,17 @@
+from importlib.metadata import metadata
+
 import fire  # type: ignore
 
 from atcdr.download import download
 from atcdr.generate import generate
 from atcdr.open import open_files
 from atcdr.test import test
+
+
+def get_version() -> None:
+	meta = metadata('AtCoderStudyBooster')
+	print(meta['Name'], meta['Version'])
+
 
 MAP_COMMANDS: dict = {
 	'test': test,
@@ -14,6 +22,8 @@ MAP_COMMANDS: dict = {
 	'o': open_files,
 	'generate': generate,
 	'g': generate,
+	'--version': get_version,
+	'-v': get_version,
 }
 
 
