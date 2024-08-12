@@ -1,6 +1,6 @@
 [project]
 name = "AtCoderStudyBooster"
-version = "0.1.0"
+version = "0.1.1"
 description = "A tool to download and manage AtCoder problems."
 authors = [
     { name = "yuta6", email = "46110512+yuta6@users.noreply.github.com" }
@@ -19,6 +19,8 @@ dependencies = [
 ]
 readme = "README.md"
 requires-python = ">= 3.8"
+license = { text = "MIT" }
+urls = { Homepage = "https://github.com/yuta6/AtCoderStudyBooster" }
 
 [project.scripts]
 "atcdr" = "atcdr.main:main"
