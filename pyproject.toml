@@ -42,7 +42,7 @@ allow-direct-references = true
 packages = ["atcdr"]
 
 [tool.ruff.lint]
-select = ["E", "F"]  # チェックするコードの種類 (E: エラー, F: フォーマッティング)
+select = ["E", "F", "I"]  # チェックするコードの種類 (E: エラー, F: フォーマッティング, I: isort)
 ignore = ["E501"]  # E501 - 行の長さ制限を無視
 
 [tool.ruff.format]
