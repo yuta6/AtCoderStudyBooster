@@ -2,7 +2,7 @@ from enum import Enum
 from typing import Optional
 
 import tiktoken
-import yfinance as yf
+import yfinance as yf  # type: ignore
 
 
 class Model(Enum):

@@ -65,8 +65,16 @@ def create_testcases_from_html(html: str) -> List[LabeledTestCase]:
 		sample_input_pre = sample_input_section.find_next('pre')
 		sample_output_pre = sample_output_section.find_next('pre')
 
-		sample_input = sample_input_pre.get_text(strip=True)
-		sample_output = sample_output_pre.get_text(strip=True)
+		sample_input = (
+			sample_input_pre.get_text(strip=True)
+			if sample_input_pre is not None
+			else ''
+		)
+		sample_output = (
+			sample_output_pre.get_text(strip=True)
+			if sample_output_pre is not None
+			else ''
+		)
 
 		test_case = TestCase(input=sample_input, output=sample_output)
 		labeled_test_case = LabeledTestCase(label=f'Sample {i}', case=test_case)

@@ -1,7 +1,7 @@
 import os
 from typing import Dict, List, Optional
 
-import requests  # type: ignore
+import requests
 
 from atcdr.util.cost import CostType, Currency, Model, Rate
 
@@ -90,16 +90,16 @@ class ChatGPT:
 		}
 
 		response = requests.post(self.API_URL, headers=self.__headers, json=settings)
-		response = response.json()
+		responsej = response.json()
 		try:
-			reply = response['choices'][0]['message']['content']
+			reply = responsej['choices'][0]['message']['content']
 		except KeyError:
-			print('Error:レスポンスの形式が正しくありません. \n' + str(response))
+			print('Error:レスポンスの形式が正しくありません. \n' + str(responsej))
 			return 'Error: Unable to retrieve response.'
 
 		self.messages.append({'role': 'assistant', 'content': reply})
 
-		usage = response['usage']
+		usage = responsej['usage']
 		input_tokens = usage.get('prompt_tokens', 0)
 		output_tokens = usage.get('completion_tokens', 0)
 		self.sum_cost += Rate.calc_cost(

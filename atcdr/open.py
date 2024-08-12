@@ -5,11 +5,17 @@ from bs4 import BeautifulSoup as bs
 from atcdr.util.filename import Lang, execute_files
 
 
+from bs4.element import Tag
+
+
 def find_link_from(html: str) -> str | None:
 	soup = bs(html, 'html.parser')
 	meta_tag = soup.find('meta', property='og:url')
-	if meta_tag and 'content' in meta_tag.attrs:
-		return meta_tag['content']
+	if isinstance(meta_tag, Tag) and 'content' in meta_tag.attrs:
+		content = meta_tag['content']
+		if isinstance(content, list):
+			return content[0]  # 必要に応じて、最初の要素を返す
+		return content
 	return None
 
 

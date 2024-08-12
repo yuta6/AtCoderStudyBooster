@@ -1,4 +1,4 @@
-import fire
+import fire  # type: ignore
 
 from atcdr.download import download
 from atcdr.generate import generate

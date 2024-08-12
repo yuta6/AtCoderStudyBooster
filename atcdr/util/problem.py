@@ -1,9 +1,9 @@
 import re
 from enum import Enum
-from typing import Optional
+from typing import Optional, Union
 
-from bs4 import BeautifulSoup as bs
-from markdownify import MarkdownConverter
+from bs4 import BeautifulSoup as bs, Tag, NavigableString
+from markdownify import MarkdownConverter  # type: ignore
 
 
 # TODO : そのうちgenerate.pyやtest.py, open.pyのHTMLのparse処理を全部まとめる
@@ -19,18 +19,27 @@ class ProblemStruct:
 		self.io_part: Optional[str] = None
 		self.test_part: Optional[list[str]] = None
 
-	def divide_problem_part(self, task_statement: bs) -> None:
+	def divide_problem_part(self, task_statement: Union[Tag, NavigableString]) -> None:
+		if not isinstance(task_statement, Tag):
+			return
+
 		parts = task_statement.find_all('div', {'class': 'part'})
 
-		self.problem_part = str(parts[0])
-		self.condition_part = str(parts[1])
+		if len(parts) >= 2:
+			self.problem_part = str(parts[0])
+			self.condition_part = str(parts[1])
 
 		io_div = task_statement.find('div', {'class': 'io-style'})
-		io_parts = io_div.find_all('div', {'class': 'part'})
+		if isinstance(io_div, Tag):
+			io_parts = io_div.find_all('div', {'class': 'part'})
 
-		# 指定したdiv内の1つ目のclass="part"のdivをio_partに格納する
-		self.io_part = io_parts[0]
-		# 指定したdiv内の2つ目以降のclass="part"のdivをtest_partのリストに格納する
+			if len(io_parts) > 0:
+				self.io_part = str(
+					io_parts[0]
+				)  # .find_all() はリストを返すので、str()でキャスト
+
+			# 2つ目以降のdivをtest_partに格納
+			self.test_part = [str(part) for part in io_parts[1:]]
 
 
 class CustomMarkdownConverter(MarkdownConverter):
@@ -56,6 +65,10 @@ def remove_unnecessary_emptylines(md_text):
 def abstract_problem_part(html_content: str, lang: str) -> str:
 	soup = bs(html_content, 'html.parser')
 	task_statement = soup.find('div', {'id': 'task-statement'})
+
+	if not isinstance(task_statement, Tag):
+		return ''
+
 	if lang == 'ja':
 		lang_class = 'lang-ja'
 	elif lang == 'en':

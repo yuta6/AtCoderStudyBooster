@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, List, Match, Optional, Union, cast
 
-import requests  # type: ignore
+import requests
 
 from atcdr.util.problem import make_problem_markdown
 

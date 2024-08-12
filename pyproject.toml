@@ -12,6 +12,10 @@ dependencies = [
     "requests",
     "tiktoken",
     "yfinance",
+    "types-requests>=2.32.0.20240712",
+    "types-beautifulsoup4>=4.12.0.20240511",
+    "types-colorama>=0.4.15.20240311",
+    "markdownify>=0.13.1",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"

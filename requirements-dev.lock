@@ -12,6 +12,7 @@
 -e file:.
 beautifulsoup4==4.12.3
     # via atcoderstudybooster
+    # via markdownify
     # via yfinance
 certifi==2024.7.4
     # via requests
@@ -39,6 +40,8 @@ iniconfig==2.0.0
     # via pytest
 lxml==5.3.0
     # via yfinance
+markdownify==0.13.1
+    # via atcoderstudybooster
 multitasking==0.0.11
     # via yfinance
 mypy==1.11.1
@@ -78,6 +81,7 @@ requests==2.32.3
 six==1.16.0
     # via fire
     # via html5lib
+    # via markdownify
     # via python-dateutil
 soupsieve==2.5
     # via beautifulsoup4
@@ -85,12 +89,21 @@ termcolor==2.4.0
     # via fire
 tiktoken==0.7.0
     # via atcoderstudybooster
+types-beautifulsoup4==4.12.0.20240511
+    # via atcoderstudybooster
+types-colorama==0.4.15.20240311
+    # via atcoderstudybooster
+types-html5lib==1.1.11.20240806
+    # via types-beautifulsoup4
+types-requests==2.32.0.20240712
+    # via atcoderstudybooster
 typing-extensions==4.12.2
     # via mypy
 tzdata==2024.1
     # via pandas
 urllib3==2.2.2
     # via requests
+    # via types-requests
 virtualenv==20.26.3
     # via pre-commit
 webencodings==0.5.1
