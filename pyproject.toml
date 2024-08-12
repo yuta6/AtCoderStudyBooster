@@ -21,7 +21,7 @@ readme = "README.md"
 requires-python = ">= 3.8"
 
 [project.scripts]
-"atcdr" = "atcdr:main"
+"atcdr" = "atcdr.main:main"
 
 [build-system]
 requires = ["hatchling"]
