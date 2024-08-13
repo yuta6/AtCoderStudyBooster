@@ -7,7 +7,13 @@ from typing import Callable, List, Optional, Union, cast
 
 import requests
 
-from atcdr.util.problem import get_title_from_html, make_problem_markdown, repair_html
+from atcdr.util.filename import FILE_EXTENSIONS, Lang
+from atcdr.util.problem import (
+	get_title_from_html,
+	make_problem_markdown,
+	repair_html,
+	title_to_filename,
+)
 
 
 class Diff(Enum):
@@ -100,13 +106,16 @@ def generate_problem_directory(
 			print('[Error] タイトルが取得できませんでした')
 			title = f'problem{problem.number}{problem.difficulty.value}'
 
+		title = title_to_filename(title)
+
 		mkdir(dir_path)
 		repaired_html = repair_html(html)
 
-		html_path = os.path.join(dir_path, f'{title}.html')
+		html_path = os.path.join(dir_path, title + FILE_EXTENSIONS[Lang.HTML])
 		save_file(html_path, repaired_html)
 		md = make_problem_markdown(html, 'ja')
-		save_file(os.path.join(dir_path, f'{title}.md'), md)
+		md_path = os.path.join(dir_path, title + FILE_EXTENSIONS[Lang.MARKDOWN])
+		save_file(md_path, md)
 
 
 def parse_range(range_str: str) -> List[int]:

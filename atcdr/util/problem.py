@@ -18,14 +18,14 @@ def repair_html(html: str) -> str:
 
 
 def get_title_from_html(html: str) -> str:
-	title_match: Optional[Match[str]] = re.search(
-		r'<title>(?:.*?-\s*)?([^<]*)</title>', html, re.IGNORECASE | re.DOTALL
-	)
-	if title_match:
-		title: str = title_match.group(1).replace(' ', '')
-		title = re.sub(r'[\\/*?:"<>| ]', '', title)
-		return title
-	return ''
+	title: Optional[Match[str]] = re.search(r'<title>([^<]*)</title>', html)
+	return title.group(1).strip() if title else ''
+
+
+def title_to_filename(title: str) -> str:
+	title = re.sub(r'[\\/*?:"<>| ]', '', title)
+	title = re.sub(r'^[A-Z]-', '', title)
+	return title
 
 
 def find_link_from_html(html: str) -> str:
@@ -82,7 +82,9 @@ def abstract_problem_part(html_content: str, lang: str) -> str:
 
 
 def make_problem_markdown(html_content: str, lang: str) -> str:
+	title = get_title_from_html(html_content)
 	problem_part = abstract_problem_part(html_content, lang)
 	problem_md = custom_markdownify(problem_part)
+	problem_md = f'# {title}\n{problem_md}'
 	problem_md = remove_unnecessary_emptylines(problem_md)
 	return problem_md
