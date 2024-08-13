@@ -1,46 +1,36 @@
 import re
 from enum import Enum
-from typing import Optional, Union
+from typing import Match, Optional
 
 from bs4 import BeautifulSoup as bs
-from bs4 import NavigableString, Tag
+from bs4 import Tag
 from markdownify import MarkdownConverter  # type: ignore
 
 
-# TODO : そのうちgenerate.pyやtest.py, open.pyのHTMLのparse処理を全部まとめる
+def repair_html(html: str) -> str:
+	html = html.replace('//img.atcoder.jp', 'https://img.atcoder.jp')
+	html = html.replace(
+		'<meta http-equiv="Content-Language" content="en">',
+		'<meta http-equiv="Content-Language" content="ja">',
+	)
+	html = html.replace('LANG = "en"', 'LANG="ja"')
+	return html
+
+
+def get_title_from_html(html: str) -> str:
+	title_match: Optional[Match[str]] = re.search(
+		r'<title>(?:.*?-\s*)?([^<]*)</title>', html, re.IGNORECASE | re.DOTALL
+	)
+	if title_match:
+		title: str = title_match.group(1).replace(' ', '')
+		title = re.sub(r'[\\/*?:"<>| ]', '', title)
+		return title
+	return ''
+
+
 class Lang(Enum):
 	JA = 'ja'
 	EN = 'en'
-
-
-class ProblemStruct:
-	def __init__(self) -> None:
-		self.problem_part: Optional[str] = None
-		self.condition_part: Optional[str] = None
-		self.io_part: Optional[str] = None
-		self.test_part: Optional[list[str]] = None
-
-	def divide_problem_part(self, task_statement: Union[Tag, NavigableString]) -> None:
-		if not isinstance(task_statement, Tag):
-			return
-
-		parts = task_statement.find_all('div', {'class': 'part'})
-
-		if len(parts) >= 2:
-			self.problem_part = str(parts[0])
-			self.condition_part = str(parts[1])
-
-		io_div = task_statement.find('div', {'class': 'io-style'})
-		if isinstance(io_div, Tag):
-			io_parts = io_div.find_all('div', {'class': 'part'})
-
-			if len(io_parts) > 0:
-				self.io_part = str(
-					io_parts[0]
-				)  # .find_all() はリストを返すので、str()でキャスト
-
-			# 2つ目以降のdivをtest_partに格納
-			self.test_part = [str(part) for part in io_parts[1:]]
 
 
 class CustomMarkdownConverter(MarkdownConverter):

@@ -3,11 +3,11 @@ import re
 import time
 from dataclasses import dataclass
 from enum import Enum
-from typing import Callable, List, Match, Optional, Union, cast
+from typing import Callable, List, Optional, Union, cast
 
 import requests
 
-from atcdr.util.problem import make_problem_markdown
+from atcdr.util.problem import get_title_from_html, make_problem_markdown, repair_html
 
 
 class Diff(Enum):
@@ -63,27 +63,6 @@ def get_problem_html(problem: Problem) -> Optional[str]:
 	return None
 
 
-def repair_html(html: str) -> str:
-	html = html.replace('//img.atcoder.jp', 'https://img.atcoder.jp')
-	html = html.replace(
-		'<meta http-equiv="Content-Language" content="en">',
-		'<meta http-equiv="Content-Language" content="ja">',
-	)
-	html = html.replace('LANG = "en"', 'LANG="ja"')
-	return html
-
-
-def get_title_from_html(html: str) -> Optional[str]:
-	title_match: Optional[Match[str]] = re.search(
-		r'<title>(?:.*?-\s*)?([^<]*)</title>', html, re.IGNORECASE | re.DOTALL
-	)
-	if title_match:
-		title: str = title_match.group(1).replace(' ', '')
-		title = re.sub(r'[\\/*?:"<>| ]', '', title)
-		return title
-	return None
-
-
 def save_file(file_path: str, html: str) -> None:
 	with open(file_path, 'w', encoding='utf-8') as file:
 		file.write(html)
@@ -117,7 +96,7 @@ def generate_problem_directory(
 			continue
 
 		title = get_title_from_html(html)
-		if title is None:
+		if not title:
 			print('[Error] タイトルが取得できませんでした')
 			title = f'problem{problem.number}{problem.difficulty.value}'
 
