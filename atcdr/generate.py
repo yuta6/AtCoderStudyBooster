@@ -3,6 +3,7 @@ import os
 import re
 
 from atcdr.test import (
+	LabeledTestCaseResult,
 	ResultStatus,
 	create_testcases_from_html,
 	judge_code_from,
@@ -24,6 +25,36 @@ def get_code_from_gpt_output(output: str) -> str:
 	pattern = re.compile(r'```(?:\w+)?\s*(.*?)\s*```', re.DOTALL)
 	match = pattern.search(output)
 	return match.group(1) if match else ''
+
+
+def render_result_for_GPT(lresult: LabeledTestCaseResult) -> str:
+	output = f'{lresult.label} of Test:\n'
+	result = lresult.result
+	testcase = lresult.testcase
+
+	if result.passed == ResultStatus.AC:
+		output += 'Accepted !! \n'
+
+	elif result.passed == ResultStatus.WA:
+		output += (
+			f'Wrong Answer\n'
+			f'Output:\n{result.output}\n'
+			f'Expected Output:\n{testcase.output}\n'
+		)
+
+	elif result.passed == ResultStatus.RE:
+		output += f'[RE] Runtime Error\n  Output:\n{result.output}'
+
+	elif result.passed == ResultStatus.TLE:
+		output += '[TLE] Time Limit Exceeded\n'
+
+	elif result.passed == ResultStatus.CE:
+		output += f'[CE] Compile Error\n  Output:\n{result.output}'
+
+	elif result.passed == ResultStatus.MLE:
+		output += '[ME] Memory Limit Exceeded\n'
+
+	return output
 
 
 def generate_code(file: Filename, lang: Lang) -> None:
@@ -94,9 +125,15 @@ def solve_problem(file: Filename, lang: Lang) -> None:
 
 	file_without_ext = os.path.splitext(file)[0]
 
-	reply = gpt.tell(md)
-
 	for i in range(1, 4):
+		test_report = ''
+		if i == 1:
+			reply = gpt.tell(md)
+		else:
+			reply = gpt.tell(f"""The following is the test report for the code you provided:
+{test_report}
+Please provide an updated version of the code in {lang2str(lang)}.""")
+
 		code = get_code_from_gpt_output(reply)
 
 		saved_filename = (
@@ -110,10 +147,15 @@ def solve_problem(file: Filename, lang: Lang) -> None:
 			f.write(code)
 
 		labeled_results = judge_code_from(labeled_cases, saved_filename)
-		test_report = '\n'.join(render_result(lresult) for lresult in labeled_results)
+		test_report_for_human = '\n'.join(
+			render_result(lresult) for lresult in labeled_results
+		)
+		test_report = '\n'.join(
+			render_result_for_GPT(lresult) for lresult in labeled_results
+		)
 
 		print(f'{i}回目のコード生成でのテスト結果:---')
-		print(test_report)
+		print(test_report_for_human)
 
 		if all(
 			labeled_result.result.passed == ResultStatus.AC
@@ -121,10 +163,6 @@ def solve_problem(file: Filename, lang: Lang) -> None:
 		):
 			print('コードのテストに成功!')
 			break
-		else:
-			reply = gpt.tell(f"""The following is the test report for the code you provided:
-{test_report}
-Please provide an updated version of the code in {lang2str(lang)}.""")
 
 	with open(
 		'log_'
