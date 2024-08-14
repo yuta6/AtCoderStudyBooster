@@ -221,7 +221,7 @@ CHECK_MARK = '\u2713'
 CROSS_MARK = '\u00d7'
 
 
-def render_results(test_results: List[LabeledTestCaseResult]) -> None:
+def render_results(lresults: List[LabeledTestCaseResult]) -> None:
 	pass
 
 
