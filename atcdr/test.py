@@ -247,32 +247,30 @@ def render_results(results: List[LabeledTestCaseResult]) -> None:
 			f'{success_count}/{total_count} ',
 			'green' if success_count == total_count else 'red',
 		),
-		'ケース成功',
 	)
 	console.print(Panel(header_text, expand=False))
 
 	# 各テストケースの結果表示
 	for i, result in enumerate(results):
-		# ラベル
-		console.print(f'[bold]{i+1}. {result.label}[/]')
-
 		# ステータス
 		status_style = (
 			'white on green' if result.result.passed == ResultStatus.AC else 'red'
 		)
+		status_rule_style = (
+			'green' if result.result.passed == ResultStatus.AC else 'red'
+		)
 		status_text = result.result.passed.value
-		console.print(f'  [bold]ステータス:[/] [{status_style}]{status_text}[/]')
+		console.rule(title=f'No.{i+1} {result.label}', style=status_rule_style)
+		console.print(f'[bold]ステータス:[/] [{status_style}]{status_text}[/]')
 
-		# 実行時間
 		if result.result.executed_time is not None:
-			console.print(f'  [bold]実行時間:[/] {result.result.executed_time} ms')
+			console.print(f'[bold]実行時間:[/] {result.result.executed_time} ms')
 
-		# 出力
 		if result.result.passed != ResultStatus.AC:
 			table = Table(show_header=True, header_style='bold', expand=True)
 			table.add_column('入力', style='cyan')
 			table.add_column('出力', style='yellow')
-			table.add_column('期待される出力', style='green')
+			table.add_column('正解の出力', style='green')
 			table.add_row(
 				escape(result.testcase.input),
 				escape(result.result.output),
@@ -285,9 +283,6 @@ def render_results(results: List[LabeledTestCaseResult]) -> None:
 			table.add_column('出力', style='green')
 			table.add_row(escape(result.testcase.input), escape(result.result.output))
 			console.print(table)
-
-		# テストケース間の区切り線
-		console.rule()
 
 
 def run_test(path_of_code: str) -> None:
