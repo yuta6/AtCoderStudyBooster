@@ -260,7 +260,7 @@ def render_results(path: str, results: List[LabeledTestCaseResult]) -> None:
 		table = Table(show_header=True, header_style='bold')
 		table.add_column('入力', style='cyan', min_width=10)
 		if result.result.passed != ResultStatus.AC:
-			table.add_column('出力', style='yellow', min_width=10)
+			table.add_column('出力', style='red', min_width=10)
 			table.add_column('正解の出力', style='green', min_width=10)
 			table.add_row(
 				escape(result.testcase.input),
