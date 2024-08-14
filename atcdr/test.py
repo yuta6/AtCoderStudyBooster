@@ -8,7 +8,7 @@ from typing import Callable, Dict, List, Optional, Union
 
 from bs4 import BeautifulSoup as bs
 from rich import print as rprint
-from rich.console import Console
+from rich.markup import escape
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
@@ -234,7 +234,6 @@ class CustomFormatStyle(Enum):
 
 
 def render_results(results: List[LabeledTestCaseResult]) -> None:
-	console = Console()
 	success_count = sum(
 		1 for result in results if result.result.passed == ResultStatus.AC
 	)
@@ -252,13 +251,9 @@ def render_results(results: List[LabeledTestCaseResult]) -> None:
 	rprint(Panel(header_text, expand=False))
 
 	# 各テストケースの結果表示
-	for result in results:
-		table = Table(show_header=False, show_lines=True, expand=True)
-		table.add_column(width=10)
-		table.add_column()
-
+	for i, result in enumerate(results):
 		# ラベル
-		table.add_row(f'[bold]{result.label}[/]', '')
+		rprint(f'[bold]{i+1}. {result.label}[/]')
 
 		# ステータス
 		status_text = (
@@ -266,29 +261,28 @@ def render_results(results: List[LabeledTestCaseResult]) -> None:
 			if result.result.passed == ResultStatus.AC
 			else f'[bold][{CustomFormatStyle.FAILURE.value}]FAILURE[/][/]'
 		)
-		table.add_row('[bold]ステータス:[/]', status_text)
+		rprint(f'  [bold]ステータス:[/] {status_text}')
 
 		# 実行時間
 		if result.result.executed_time is not None:
-			table.add_row('[bold]実行時間:[/]', f'{result.result.executed_time} ms')
+			rprint(f'  [bold]実行時間:[/] {result.result.executed_time} ms')
 
 		# 出力
 		if result.result.passed != ResultStatus.AC:
-			table.add_row(
-				f'[bold][{CustomFormatStyle.INFO.value}]出力:[/][/]',
-				result.result.output,
+			table = Table(
+				show_header=True, header_style='bold', show_lines=True, expand=True
 			)
-			table.add_row(
-				f'[bold][{CustomFormatStyle.INFO.value}]期待される出力:[/][/]',
-				result.testcase.output,
-			)
+			table.add_column('出力', style=f'{CustomFormatStyle.INFO.value}')
+			table.add_column('期待される出力', style=f'{CustomFormatStyle.INFO.value}')
+			# output を rich text escape
+			table.add_row(escape(result.result.output), escape(result.testcase.output))
+			rprint(table)
 		else:
-			table.add_row(
-				f'[bold][{CustomFormatStyle.INFO.value}]出力:[/][/]',
-				result.result.output,
+			rprint(
+				f'  [bold][{CustomFormatStyle.INFO.value}]出力:[/][/] {escape(result.result.output)}'
 			)
 
-		console.print(table)
+		rprint('-' * 50)  # テストケース間の区切り線
 
 
 def run_test(path_of_code: str) -> None:
