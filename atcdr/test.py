@@ -216,10 +216,6 @@ def judge_code_from(
 	]
 
 
-CHECK_MARK = '\u2713'
-CROSS_MARK = '\u00d7'
-
-
 class CustomFormatStyle(Enum):
 	SUCCESS = 'green'
 	FAILURE = 'red'
@@ -244,18 +240,19 @@ def render_results(path: str, results: List[LabeledTestCaseResult]) -> None:
 	)
 	console.print(Panel(header_text, expand=False))
 
+	CHECK_MARK = '\u2713'
+	CROSS_MARK = '\u00d7'
 	# 各テストケースの結果表示
 	for i, result in enumerate(results):
-		# ステータス
-		status_style = (
-			'white on green' if result.result.passed == ResultStatus.AC else 'red'
-		)
-		status_rule_style = (
-			'green' if result.result.passed == ResultStatus.AC else 'red'
-		)
-		status_text = result.result.passed.value
-		console.rule(title=f'No.{i+1} {result.label}', style=status_rule_style)
-		console.print(f'[bold]ステータス:[/] [{status_style}]{status_text}[/]')
+		if result.result.passed == ResultStatus.AC:
+			status_text = f'[green]{CHECK_MARK}[/] [white on green]{result.result.passed.value}[/]'
+			console.rule(title=f'No.{i+1} {result.label}', style='green')
+			console.print(f'[bold]ステータス:[/] {status_text}')
+
+		else:
+			status_text = f'[red]{CROSS_MARK} {result.result.passed.value}[/]'
+			console.rule(title=f'No.{i+1} {result.label}', style='red')
+			console.print(f'[bold]ステータス:[/] {status_text}')
 
 		if result.result.executed_time is not None:
 			console.print(f'[bold]実行時間:[/] {result.result.executed_time} ms')
