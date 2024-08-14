@@ -7,6 +7,11 @@ from enum import Enum
 from typing import Callable, Dict, List, Optional, Union
 
 from bs4 import BeautifulSoup as bs
+from rich import print as rprint
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
+from rich.text import Text
 
 from atcdr.util.filename import FILE_EXTENSIONS, SOURCE_LANGUAGES, Lang, execute_files
 
@@ -221,8 +226,69 @@ CHECK_MARK = '\u2713'
 CROSS_MARK = '\u00d7'
 
 
-def render_results(lresults: List[LabeledTestCaseResult]) -> None:
-	pass
+class CustomFormatStyle(Enum):
+	SUCCESS = 'green'
+	FAILURE = 'red'
+	WARNING = 'yellow'
+	INFO = 'blue'
+
+
+def render_results(results: List[LabeledTestCaseResult]) -> None:
+	console = Console()
+	success_count = sum(
+		1 for result in results if result.result.passed == ResultStatus.AC
+	)
+	total_count = len(results)
+
+	# ヘッダー
+	header_text = Text.assemble(
+		'テスト結果 ',
+		(
+			f'{success_count}/{total_count} ',
+			'green' if success_count == total_count else 'red',
+		),
+		'ケース成功',
+	)
+	rprint(Panel(header_text, expand=False))
+
+	# 各テストケースの結果表示
+	for result in results:
+		table = Table(show_header=False, show_lines=True, expand=True)
+		table.add_column(width=10)
+		table.add_column()
+
+		# ラベル
+		table.add_row(f'[bold]{result.label}[/]', '')
+
+		# ステータス
+		status_text = (
+			f'[bold][{CustomFormatStyle.SUCCESS.value}]SUCCESS[/][/]'
+			if result.result.passed == ResultStatus.AC
+			else f'[bold][{CustomFormatStyle.FAILURE.value}]FAILURE[/][/]'
+		)
+		table.add_row('[bold]ステータス:[/]', status_text)
+
+		# 実行時間
+		if result.result.executed_time is not None:
+			table.add_row('[bold]実行時間:[/]', f'{result.result.executed_time} ms')
+
+		# 出力
+		if result.result.passed != ResultStatus.AC:
+			table.add_row(
+				f'[bold][{CustomFormatStyle.INFO.value}]出力:[/][/]',
+				result.result.output,
+			)
+			table.add_row(
+				f'[bold][{CustomFormatStyle.INFO.value}]期待される出力:[/][/]',
+				result.testcase.output,
+			)
+		else:
+			table.add_row(
+				f'[bold][{CustomFormatStyle.INFO.value}]出力:[/][/]',
+				result.result.output,
+			)
+
+		console.print(table)
 
 
 def run_test(path_of_code: str) -> None:
