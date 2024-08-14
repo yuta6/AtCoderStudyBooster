@@ -233,7 +233,7 @@ class CustomFormatStyle(Enum):
 	INFO = 'blue'
 
 
-def render_results(results: List[LabeledTestCaseResult]) -> None:
+def render_results(path: str, results: List[LabeledTestCaseResult]) -> None:
 	console = Console()
 	success_count = sum(
 		1 for result in results if result.result.passed == ResultStatus.AC
@@ -242,7 +242,7 @@ def render_results(results: List[LabeledTestCaseResult]) -> None:
 
 	# ヘッダー
 	header_text = Text.assemble(
-		'テスト結果 ',
+		f'{path}のテスト  ',
 		(
 			f'{success_count}/{total_count} ',
 			'green' if success_count == total_count else 'red',
@@ -266,23 +266,20 @@ def render_results(results: List[LabeledTestCaseResult]) -> None:
 		if result.result.executed_time is not None:
 			console.print(f'[bold]実行時間:[/] {result.result.executed_time} ms')
 
+		table = Table(show_header=True, header_style='bold')
+		table.add_column('入力', style='cyan', min_width=10)
 		if result.result.passed != ResultStatus.AC:
-			table = Table(show_header=True, header_style='bold', expand=True)
-			table.add_column('入力', style='cyan')
-			table.add_column('出力', style='yellow')
-			table.add_column('正解の出力', style='green')
+			table.add_column('出力', style='yellow', min_width=10)
+			table.add_column('正解の出力', style='green', min_width=10)
 			table.add_row(
 				escape(result.testcase.input),
 				escape(result.result.output),
 				escape(result.testcase.output),
 			)
-			console.print(table)
 		else:
-			table = Table(show_header=True, header_style='bold', expand=True)
-			table.add_column('入力', style='cyan')
-			table.add_column('出力', style='green')
+			table.add_column('出力', style='green', min_width=10)
 			table.add_row(escape(result.testcase.input), escape(result.result.output))
-			console.print(table)
+		console.print(table)
 
 
 def run_test(path_of_code: str) -> None:
@@ -297,9 +294,8 @@ def run_test(path_of_code: str) -> None:
 		html = file.read()
 
 	test_cases = create_testcases_from_html(html)
-	print(f'{path_of_code}をテストします。\n' + '-' * 20 + '\n')
 	test_results = judge_code_from(test_cases, path_of_code)
-	render_results(test_results)
+	render_results(path_of_code, test_results)
 
 
 def test(*args: str) -> None:
