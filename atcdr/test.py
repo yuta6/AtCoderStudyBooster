@@ -138,8 +138,6 @@ def run_c(path: str, case: TestCase) -> TestCaseResult:
 			return TestCaseResult(
 				output=compile_result.stderr, executed_time=None, passed=ResultStatus.CE
 			)
-		if compile_result.stderr:
-			print(f'コンパイラーからのメッセージ\n{compile_result.stderr}')
 		return run_code([exec_path], case)
 
 
@@ -153,8 +151,6 @@ def run_cpp(path: str, case: TestCase) -> TestCaseResult:
 			return TestCaseResult(
 				output=compile_result.stderr, executed_time=None, passed=ResultStatus.CE
 			)
-		if compile_result.stderr:
-			print(f'コンパイラーからのメッセージ\n{compile_result.stderr}')
 		return run_code([exec_path], case)
 
 
@@ -168,8 +164,6 @@ def run_rust(path: str, case: TestCase) -> TestCaseResult:
 			return TestCaseResult(
 				output=compile_result.stderr, executed_time=None, passed=ResultStatus.CE
 			)
-		if compile_result.stderr:
-			print(f'コンパイラーからのメッセージ\n{compile_result.stderr}')
 		return run_code([exec_path], case)
 
 
