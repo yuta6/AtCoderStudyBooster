@@ -7,7 +7,7 @@ from atcdr.test import (
 	ResultStatus,
 	create_testcases_from_html,
 	judge_code_from,
-	render_results,
+	render_result,
 )
 from atcdr.util.filename import (
 	FILE_EXTENSIONS,
@@ -147,12 +147,15 @@ Please provide an updated version of the code in {lang2str(lang)}.""")
 			f.write(code)
 
 		labeled_results = judge_code_from(labeled_cases, saved_filename)
+		test_report_for_human = '\n'.join(
+			render_result(lresult) for lresult in labeled_results
+		)
 		test_report = '\n'.join(
 			render_result_for_GPT(lresult) for lresult in labeled_results
 		)
 
 		print(f'{i}回目のコード生成でのテスト結果:---')
-		render_results(labeled_results)
+		print(test_report_for_human)
 
 		if all(
 			labeled_result.result.passed == ResultStatus.AC

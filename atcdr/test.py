@@ -6,14 +6,13 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, Dict, List, Optional, Union
 
+import colorama
 from bs4 import BeautifulSoup as bs
-from rich.console import Console
-from rich.markup import escape
-from rich.panel import Panel
-from rich.table import Table
-from rich.text import Text
+from colorama import Fore
 
 from atcdr.util.filename import FILE_EXTENSIONS, SOURCE_LANGUAGES, Lang, execute_files
+
+colorama.init(autoreset=True)
 
 
 @dataclass
@@ -226,63 +225,32 @@ CHECK_MARK = '\u2713'
 CROSS_MARK = '\u00d7'
 
 
-class CustomFormatStyle(Enum):
-	SUCCESS = 'green'
-	FAILURE = 'red'
-	WARNING = 'yellow'
-	INFO = 'blue'
+def render_result(lresult: LabeledTestCaseResult) -> str:
+	output = f'{Fore.CYAN}{lresult.label} of Test:\n'
+	result = lresult.result
+	testcase = lresult.testcase
 
-
-def render_results(results: List[LabeledTestCaseResult]) -> None:
-	console = Console()
-	success_count = sum(
-		1 for result in results if result.result.passed == ResultStatus.AC
-	)
-	total_count = len(results)
-
-	# ヘッダー
-	header_text = Text.assemble(
-		'テスト結果 ',
-		(
-			f'{success_count}/{total_count} ',
-			'green' if success_count == total_count else 'red',
-		),
-	)
-	console.print(Panel(header_text, expand=False))
-
-	# 各テストケースの結果表示
-	for i, result in enumerate(results):
-		# ステータス
-		status_style = (
-			'white on green' if result.result.passed == ResultStatus.AC else 'red'
+	if result.passed == ResultStatus.AC:
+		output += (
+			Fore.GREEN + f'{CHECK_MARK} Accepted !! Time: {result.executed_time} ms\n'
 		)
-		status_rule_style = (
-			'green' if result.result.passed == ResultStatus.AC else 'red'
+	elif result.passed == ResultStatus.WA:
+		output += (
+			Fore.RED
+			+ f'{CROSS_MARK} Wrong Answer ! Time: {result.executed_time} ms\nOutput:\n{result.output}\nExpected Output:\n{testcase.output}\n'
 		)
-		status_text = result.result.passed.value
-		console.rule(title=f'No.{i+1} {result.label}', style=status_rule_style)
-		console.print(f'[bold]ステータス:[/] [{status_style}]{status_text}[/]')
+	elif result.passed == ResultStatus.RE:
+		output += Fore.YELLOW + f'[RE] Runtime Error\n  Output:\n{result.output}'
+	elif result.passed == ResultStatus.TLE:
+		output += Fore.YELLOW + '[TLE] Time Limit Exceeded\n'
+	elif result.passed == ResultStatus.CE:
+		output += Fore.YELLOW + f'[CE] Compile Error\n  Output:\n{result.output}'
+	elif result.passed == ResultStatus.MLE:
+		output += Fore.YELLOW + '[ME] Memory Limit Exceeded\n'
 
-		if result.result.executed_time is not None:
-			console.print(f'[bold]実行時間:[/] {result.result.executed_time} ms')
+	output += Fore.RESET
 
-		if result.result.passed != ResultStatus.AC:
-			table = Table(show_header=True, header_style='bold', expand=True)
-			table.add_column('入力', style='cyan')
-			table.add_column('出力', style='yellow')
-			table.add_column('正解の出力', style='green')
-			table.add_row(
-				escape(result.testcase.input),
-				escape(result.result.output),
-				escape(result.testcase.output),
-			)
-			console.print(table)
-		else:
-			table = Table(show_header=True, header_style='bold', expand=True)
-			table.add_column('入力', style='cyan')
-			table.add_column('出力', style='green')
-			table.add_row(escape(result.testcase.input), escape(result.result.output))
-			console.print(table)
+	return output
 
 
 def run_test(path_of_code: str) -> None:
@@ -299,7 +267,9 @@ def run_test(path_of_code: str) -> None:
 	test_cases = create_testcases_from_html(html)
 	print(f'{path_of_code}をテストします。\n' + '-' * 20 + '\n')
 	test_results = judge_code_from(test_cases, path_of_code)
-	render_results(test_results)
+	output = '\n'.join(render_result(lresult) for lresult in test_results)
+
+	print(output)
 
 
 def test(*args: str) -> None:
