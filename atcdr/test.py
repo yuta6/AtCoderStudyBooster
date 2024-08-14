@@ -6,13 +6,9 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, Dict, List, Optional, Union
 
-import colorama
 from bs4 import BeautifulSoup as bs
-from colorama import Fore
 
 from atcdr.util.filename import FILE_EXTENSIONS, SOURCE_LANGUAGES, Lang, execute_files
-
-colorama.init(autoreset=True)
 
 
 @dataclass
@@ -225,32 +221,8 @@ CHECK_MARK = '\u2713'
 CROSS_MARK = '\u00d7'
 
 
-def render_result(lresult: LabeledTestCaseResult) -> str:
-	output = f'{Fore.CYAN}{lresult.label} of Test:\n'
-	result = lresult.result
-	testcase = lresult.testcase
-
-	if result.passed == ResultStatus.AC:
-		output += (
-			Fore.GREEN + f'{CHECK_MARK} Accepted !! Time: {result.executed_time} ms\n'
-		)
-	elif result.passed == ResultStatus.WA:
-		output += (
-			Fore.RED
-			+ f'{CROSS_MARK} Wrong Answer ! Time: {result.executed_time} ms\nOutput:\n{result.output}\nExpected Output:\n{testcase.output}\n'
-		)
-	elif result.passed == ResultStatus.RE:
-		output += Fore.YELLOW + f'[RE] Runtime Error\n  Output:\n{result.output}'
-	elif result.passed == ResultStatus.TLE:
-		output += Fore.YELLOW + '[TLE] Time Limit Exceeded\n'
-	elif result.passed == ResultStatus.CE:
-		output += Fore.YELLOW + f'[CE] Compile Error\n  Output:\n{result.output}'
-	elif result.passed == ResultStatus.MLE:
-		output += Fore.YELLOW + '[ME] Memory Limit Exceeded\n'
-
-	output += Fore.RESET
-
-	return output
+def render_results(test_results: List[LabeledTestCaseResult]) -> None:
+	pass
 
 
 def run_test(path_of_code: str) -> None:
@@ -267,9 +239,7 @@ def run_test(path_of_code: str) -> None:
 	test_cases = create_testcases_from_html(html)
 	print(f'{path_of_code}をテストします。\n' + '-' * 20 + '\n')
 	test_results = judge_code_from(test_cases, path_of_code)
-	output = '\n'.join(render_result(lresult) for lresult in test_results)
-
-	print(output)
+	render_results(test_results)
 
 
 def test(*args: str) -> None:
