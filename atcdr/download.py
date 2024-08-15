@@ -49,7 +49,7 @@ def get_problem_html(problem: Problem) -> Optional[str]:
 			time.sleep(retry_wait)
 		elif 300 <= response.status_code < 400:
 			print(
-				f'[Erroe{response.status_code}] リダイレクトが発生しました。abc{problem.number} {problem.difficulty.value}'
+				f'[Error{response.status_code}] リダイレクトが発生しました。abc{problem.number} {problem.difficulty.value}'
 			)
 		elif 400 <= response.status_code < 500:
 			print(
@@ -128,7 +128,7 @@ def parse_range(range_str: str) -> List[int]:
 
 
 def parse_diff_range(range_str: str) -> List[Diff]:
-	match = re.match(r'^([A-F])\.\.([A-F])$', range_str)
+	match = re.match(r'^([A-Z])\.\.([A-Z])$', range_str)
 	if match:
 		start, end = match.groups()
 		start_index = ord(start) - ord('A')
@@ -148,7 +148,7 @@ def convert_arg(arg: Union[str, int]) -> Union[List[int], List[Diff]]:
 			return [Diff[arg]]
 		elif re.match(r'^\d+\.\.\d+$', arg):
 			return parse_range(arg)
-		elif re.match(r'^[A-F]\.\.[A-F]$', arg):
+		elif re.match(r'^[A-Z]\.\.[A-Z]$', arg):
 			return parse_diff_range(arg)
 	raise ValueError(f'{arg}は認識できません')
 
@@ -175,9 +175,9 @@ def download(
 		if isinstance(first, Diff):
 			raise ValueError(
 				"""難易度だけでなく, 問題番号も指定してコマンドを実行してください.
-                             例 atcdr -d A 120  : A問題の120をダウンロードます
-                             例 atcdr -d A 120..130  : A問題の120から130をダウンロードます
-                             """
+                    例 atcdr -d A 120  : A問題の120をダウンロードます
+                    例 atcdr -d A 120..130  : A問題の120から130をダウンロードます
+                """
 			)
 		second_args: Union[List[int], List[Diff]] = list(Diff)
 	else:
@@ -204,9 +204,9 @@ def download(
 	else:
 		raise ValueError(
 			"""次のような形式で問題を指定してください
-                            例 atcdr -d A 120..130  : A問題の120から130をダウンロードします
-                            例 atcdr -d 120         : ABCのコンテストの問題をダウンロードします
-                         """
+				例 atcdr -d A 120..130  : A問題の120から130をダウンロードします
+				例 atcdr -d 120         : ABCのコンテストの問題をダウンロードします
+            """
 		)
 
 
