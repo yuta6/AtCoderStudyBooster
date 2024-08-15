@@ -10,7 +10,7 @@ import requests
 from rich.console import Console
 from rich.prompt import IntPrompt, Prompt
 
-from atcdr.util.filename import FILE_EXTENSIONS, Lang
+from atcdr.util.filetype import FILE_EXTENSIONS, Lang
 from atcdr.util.problem import (
 	get_title_from_html,
 	make_problem_markdown,
@@ -167,16 +167,17 @@ def are_all_diffs(args: Union[List[int], List[Diff]]) -> bool:
 
 
 def interactive_download() -> None:
-	contest = '1. 特定のコンテストの問題を解きたい'
-	practice = '2. 特定の難易度の問題を集中的に練習したい'
-	one_file = '3. 1ファイルだけダウンロードする'
-	end = '4. 終了する'
+	CONTEST = '1. 特定のコンテストの問題を解きたい'
+	PRACTICE = '2. 特定の難易度の問題を集中的に練習したい'
+	ONE_FILE = '3. 1ファイルだけダウンロードする'
+	END = '4. 終了する'
 
 	choice = q.select(
 		message='AtCoderの問題のHTMLファイルをダウンロードします',
 		qmark='',
 		pointer='❯❯❯',
-		choices=[contest, practice, one_file, end],
+		choices=[CONTEST, PRACTICE, ONE_FILE, END],
+		instruction='\n 十字キーで移動,[enter]で実行',
 		style=q.Style(
 			[
 				('qmark', 'fg:#2196F3 bold'),
@@ -189,7 +190,7 @@ def interactive_download() -> None:
 		),
 	).ask()
 
-	if choice == contest:
+	if choice == CONTEST:
 		number = IntPrompt.ask(
 			'コンテスト番号を入力してください (例: 120)',
 		)
@@ -199,7 +200,7 @@ def interactive_download() -> None:
 
 		generate_problem_directory('.', problems, GenerateMode.gene_path_on_num)
 
-	elif choice == practice:
+	elif choice == PRACTICE:
 		diff = Prompt.ask(
 			'難易度を入力してください (例: A)',
 		)
@@ -221,7 +222,7 @@ def interactive_download() -> None:
 
 		generate_problem_directory('.', problems, GenerateMode.gene_path_on_diff)
 
-	elif choice == one_file:
+	elif choice == ONE_FILE:
 		contest_number = IntPrompt.ask(
 			'コンテスト番号を入力してください (例: 120)',
 		)
@@ -234,7 +235,7 @@ def interactive_download() -> None:
 		problem = Problem(contest_number, Diff[difficulty])
 		generate_problem_directory('.', [problem], GenerateMode.gene_path_on_num)
 
-	elif choice == end:
+	elif choice == END:
 		console.print('終了します', style='bold red')
 	else:
 		console.print('無効な選択です', style='bold red')

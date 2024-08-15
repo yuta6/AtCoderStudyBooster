@@ -2,7 +2,8 @@ import webbrowser  # noqa: I001
 from rich.panel import Panel
 from rich.console import Console
 
-from atcdr.util.filename import Lang, execute_files
+from atcdr.util.filetype import Lang
+from atcdr.util.execute import execute_files
 from atcdr.util.problem import find_link_from_html
 
 

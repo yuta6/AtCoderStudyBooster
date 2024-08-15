@@ -11,11 +11,11 @@ from atcdr.test import (
 	judge_code_from,
 	render_results,
 )
-from atcdr.util.filename import (
+from atcdr.util.execute import execute_files
+from atcdr.util.filetype import (
 	FILE_EXTENSIONS,
 	Filename,
 	Lang,
-	execute_files,
 	lang2str,
 	str2lang,
 )
