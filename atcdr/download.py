@@ -6,6 +6,7 @@ from enum import Enum
 from typing import Callable, List, Optional, Union, cast
 
 import requests
+from rich.console import Console
 
 from atcdr.util.filename import FILE_EXTENSIONS, Lang
 from atcdr.util.problem import (
@@ -14,6 +15,8 @@ from atcdr.util.problem import (
 	repair_html,
 	title_to_filename,
 )
+
+console = Console()
 
 
 class Diff(Enum):
@@ -43,27 +46,27 @@ def get_problem_html(problem: Problem) -> Optional[str]:
 		if response.status_code == 200:
 			return response.text
 		elif response.status_code == 429:
-			print(
-				f'[Error{response.status_code}] 再試行します. abc{problem.number} {problem.difficulty.value}'
+			console.print(
+				f'[bold yellow][Error {response.status_code}][/bold yellow] 再試行します。abc{problem.number} {problem.difficulty.value}'
 			)
 			time.sleep(retry_wait)
 		elif 300 <= response.status_code < 400:
-			print(
-				f'[Error{response.status_code}] リダイレクトが発生しました。abc{problem.number} {problem.difficulty.value}'
+			console.print(
+				f'[bold yellow][Error {response.status_code}][/bold yellow] リダイレクトが発生しました。abc{problem.number} {problem.difficulty.value}'
 			)
 		elif 400 <= response.status_code < 500:
-			print(
-				f'[Error{response.status_code}] 問題が見つかりません。abc{problem.number} {problem.difficulty.value}'
+			console.print(
+				f'[bold red][Error {response.status_code}][/bold red] 問題が見つかりません。abc{problem.number} {problem.difficulty.value}'
 			)
 			break
 		elif 500 <= response.status_code < 600:
-			print(
-				f'[Error{response.status_code}] サーバーエラーが発生しました。abc{problem.number} {problem.difficulty.value}'
+			console.print(
+				f'[bold red][Error {response.status_code}][/bold red] サーバーエラーが発生しました。abc{problem.number} {problem.difficulty.value}'
 			)
 			break
 		else:
-			print(
-				f'[Error{response.status_code}] abc{problem.number} {problem.difficulty.value}に対応するHTMLファイルを取得できませんでした。'
+			console.print(
+				f'[bold red][Error {response.status_code}][/bold red] abc{problem.number} {problem.difficulty.value}に対応するHTMLファイルを取得できませんでした。'
 			)
 			break
 	return None
@@ -72,13 +75,13 @@ def get_problem_html(problem: Problem) -> Optional[str]:
 def save_file(file_path: str, html: str) -> None:
 	with open(file_path, 'w', encoding='utf-8') as file:
 		file.write(html)
-	print(f'[+] ファイルを保存しました :{file_path}')
+	console.print(f'[bold green][+][/bold green] ファイルを保存しました :{file_path}')
 
 
 def mkdir(path: str) -> None:
 	if not os.path.exists(path):
 		os.makedirs(path)
-		print(f'[+] フォルダー: {path} を作成しました')
+		console.print(f'[bold green][+][/bold green] フォルダー: {path} を作成しました')
 
 
 class GenerateMode:
@@ -103,7 +106,7 @@ def generate_problem_directory(
 
 		title = get_title_from_html(html)
 		if not title:
-			print('[Error] タイトルが取得できませんでした')
+			console.print('[bold red][Error][/bold red] タイトルが取得できませんでした')
 			title = f'problem{problem.number}{problem.difficulty.value}'
 
 		title = title_to_filename(title)
@@ -124,7 +127,7 @@ def parse_range(range_str: str) -> List[int]:
 		start, end = map(int, match.groups())
 		return list(range(start, end + 1))
 	else:
-		raise ValueError('Invalid range format')
+		raise ValueError('数字の範囲の形式が間違っています')
 
 
 def parse_diff_range(range_str: str) -> List[Diff]:
@@ -204,20 +207,21 @@ def download(
 	else:
 		raise ValueError(
 			"""次のような形式で問題を指定してください
-				例 atcdr -d A 120..130  : A問題の120から130をダウンロードします
-				例 atcdr -d 120         : ABCのコンテストの問題をダウンロードします
+                例 atcdr -d A 120..130  : A問題の120から130をダウンロードします
+                例 atcdr -d 120         : ABCのコンテストの問題をダウンロードします
             """
 		)
 
 
 def main() -> None:
-	print('AtCoderの問題のHTMLファイルをダウンロードします')
-	print(
+	console.print('AtCoderの問題のHTMLファイルをダウンロードします', style='bold blue')
+	console.print(
 		"""
     1. 番号の範囲を指定してダウンロードする
     2. 1ファイルだけダウンロードする
     q: 終了
-    """
+    """,
+		style='bold blue',
 	)
 
 	choice = input('選択してください: ')
@@ -245,9 +249,9 @@ def main() -> None:
 			'.', [Problem(number, difficulty)], GenerateMode.gene_path_on_diff
 		)
 	elif choice == 'q':
-		print('終了します')
+		console.print('終了します', style='bold red')
 	else:
-		print('無効な選択です')
+		console.print('無効な選択です', style='bold red')
 
 
 if __name__ == '__main__':
