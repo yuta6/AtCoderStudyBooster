@@ -5,8 +5,10 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, List, Optional, Union, cast
 
+import questionary as q
 import requests
 from rich.console import Console
+from rich.prompt import IntPrompt, Prompt
 
 from atcdr.util.filename import FILE_EXTENSIONS, Lang
 from atcdr.util.problem import (
@@ -141,7 +143,7 @@ def parse_diff_range(range_str: str) -> List[Diff]:
 	raise ValueError('A..C の形式になっていません')
 
 
-def convert_arg(arg: Union[str, int]) -> Union[List[int], List[Diff]]:
+def convert_arg(arg: str) -> Union[List[int], List[Diff]]:
 	if isinstance(arg, int):
 		return [arg]
 	elif isinstance(arg, str):
@@ -164,13 +166,87 @@ def are_all_diffs(args: Union[List[int], List[Diff]]) -> bool:
 	return all(isinstance(arg, Diff) for arg in args)
 
 
+def interactive_download() -> None:
+	contest = '1. 特定のコンテストの問題を解きたい'
+	practice = '2. 特定の難易度の問題を集中的に練習したい'
+	one_file = '3. 1ファイルだけダウンロードする'
+	end = '4. 終了する'
+
+	choice = q.select(
+		message='AtCoderの問題のHTMLファイルをダウンロードします',
+		qmark='',
+		pointer='❯❯❯',
+		choices=[contest, practice, one_file, end],
+		style=q.Style(
+			[
+				('qmark', 'fg:#2196F3 bold'),
+				('question', 'fg:#2196F3 bold'),
+				('answer', 'fg:#2196F3 bold'),
+				('pointer', 'fg:#FFB300 bold'),
+				('highlighted', 'fg:#2196F3 bold'),
+				('selected', 'fg:#2196F3 bold'),
+			]
+		),
+	).ask()
+
+	if choice == contest:
+		number = IntPrompt.ask(
+			'コンテスト番号を入力してください (例: 120)',
+		)
+		contest_diffs = list(Diff)
+
+		problems = [Problem(number, diff) for diff in contest_diffs]
+
+		generate_problem_directory('.', problems, GenerateMode.gene_path_on_num)
+
+	elif choice == practice:
+		diff = Prompt.ask(
+			'難易度を入力してください (例: A)',
+		)
+		try:
+			diff = Diff[diff.upper()]
+		except KeyError:
+			raise ValueError('入力された難易度が認識できません')
+		number_str = Prompt.ask(
+			'コンテスト番号または範囲を入力してください (例: 120..130)'
+		)
+		if number_str.isdigit():
+			contest_numbers = [int(number_str)]
+		elif re.match(r'^\d+\.\.\d+$', number_str):
+			contest_numbers = parse_range(number_str)
+		else:
+			raise ValueError('数字の範囲の形式が間違っています')
+
+		problems = [Problem(number, diff) for number in contest_numbers]
+
+		generate_problem_directory('.', problems, GenerateMode.gene_path_on_diff)
+
+	elif choice == one_file:
+		contest_number = IntPrompt.ask(
+			'コンテスト番号を入力してください (例: 120)',
+		)
+		difficulty = Prompt.ask(
+			'難易度を入力してください (例: A)', choices=[d.name for d in Diff]
+		)
+
+		difficulty = difficulty.upper().strip()
+
+		problem = Problem(contest_number, Diff[difficulty])
+		generate_problem_directory('.', [problem], GenerateMode.gene_path_on_num)
+
+	elif choice == end:
+		console.print('終了します', style='bold red')
+	else:
+		console.print('無効な選択です', style='bold red')
+
+
 def download(
 	first: Union[str, int, None] = None,
 	second: Union[str, int, None] = None,
 	base_path: str = '.',
 ) -> None:
 	if first is None:
-		main()
+		interactive_download()
 		return
 
 	first_args = convert_arg(str(first))
@@ -211,48 +287,3 @@ def download(
                 例 atcdr -d 120         : ABCのコンテストの問題をダウンロードします
             """
 		)
-
-
-def main() -> None:
-	console.print('AtCoderの問題のHTMLファイルをダウンロードします', style='bold blue')
-	console.print(
-		"""
-    1. 番号の範囲を指定してダウンロードする
-    2. 1ファイルだけダウンロードする
-    q: 終了
-    """,
-		style='bold blue',
-	)
-
-	choice = input('選択してください: ')
-
-	if choice == '1':
-		start_end = input(
-			'開始と終了のコンテストの番号をスペースで区切って指定してください (例: 223 230): '
-		)
-		start, end = map(int, start_end.split(' '))
-		difficulty = Diff[
-			input(
-				'ダウンロードする問題の難易度を指定してください (例: A, B, C): '
-			).upper()
-		]
-		problem_list = [Problem(number, difficulty) for number in range(start, end + 1)]
-		generate_problem_directory('.', problem_list, GenerateMode.gene_path_on_diff)
-	elif choice == '2':
-		number = int(input('コンテストの番号を指定してください: '))
-		difficulty = Diff[
-			input(
-				'ダウンロードする問題の難易度を指定してください (例: A, B, C): '
-			).upper()
-		]
-		generate_problem_directory(
-			'.', [Problem(number, difficulty)], GenerateMode.gene_path_on_diff
-		)
-	elif choice == 'q':
-		console.print('終了します', style='bold red')
-	else:
-		console.print('無効な選択です', style='bold red')
-
-
-if __name__ == '__main__':
-	main()
