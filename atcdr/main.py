@@ -1,6 +1,7 @@
 from importlib.metadata import metadata
 
 import fire  # type: ignore
+from rich.traceback import install
 
 from atcdr.download import download
 from atcdr.generate import generate
@@ -28,6 +29,7 @@ MAP_COMMANDS: dict = {
 
 
 def main():
+	install()
 	fire.Fire(MAP_COMMANDS)
 
 
