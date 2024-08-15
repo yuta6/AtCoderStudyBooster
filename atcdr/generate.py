@@ -2,6 +2,8 @@ import json
 import os
 import re
 
+from rich.console import Console
+
 from atcdr.test import (
 	LabeledTestCaseResult,
 	ResultStatus,
@@ -58,6 +60,7 @@ def render_result_for_GPT(lresult: LabeledTestCaseResult) -> str:
 
 
 def generate_code(file: Filename, lang: Lang) -> None:
+	console = Console()
 	with open(file, 'r') as f:
 		html_content = f.read()
 	md = make_problem_markdown(html_content, 'en')
@@ -67,20 +70,25 @@ def generate_code(file: Filename, lang: Lang) -> None:
 	gpt = ChatGPT(
 		system_prompt=f"""You are an excellent programmer. You solve problems in competitive programming.When a user provides you with a problem from a programming contest called AtCoder, including the Problem,Constraints, Input, Output, Input Example, and Output Example, please carefully consider these and solve the problem.Make sure that your output code block contains no more than two blocks. Pay close attention to the Input, Input Example, Output, and Output Example.Create the solution in {lang2str(lang)}.""",
 	)
+	with console.status('コードを生成しています...'):
+		reply = gpt.tell(md)
 
-	reply = gpt.tell(md)
 	code = get_code_from_gpt_output(reply)
-	print(f'AI利用にかかったAPIコスト: {gpt.sum_cost}')
 
 	saved_filename = (
 		os.path.splitext(file)[0] + f'_by_{gpt.model.value}' + FILE_EXTENSIONS[lang]
 	)
 	with open(saved_filename, 'w') as f:
-		print(f'[+]:{gpt.model.value}の出力したコードを保存しました：{f.name}')
+		console.print(
+			f'[green][+][/green] {gpt.model.value} の出力したコードを保存しました：{f.name}'
+		)
 		f.write(code)
+
+	console.print(f'[info] AI利用にかかったAPIコスト: {gpt.sum_cost}')
 
 
 def generate_template(file: Filename, lang: Lang) -> None:
+	console = Console()
 	with open(file, 'r') as f:
 		html_content = f.read()
 	md = make_problem_markdown(html_content, 'en')
@@ -101,17 +109,22 @@ The user will provide a problem from a programming contest called AtCoder. This 
 
 You must not solve the problem. Please faithfully reproduce the variable names defined in the problem.
     """
-	reply = gpt.tell(md + propmpt)
+	with console.status('コードを生成しています...'):
+		reply = gpt.tell(md + propmpt)
 	code = get_code_from_gpt_output(reply)
-	print(f'AI利用にかかったAPIコスト:{gpt.sum_cost}')
 
 	savaed_filename = os.path.splitext(file)[0] + FILE_EXTENSIONS[lang]
 	with open(savaed_filename, 'w') as f:
-		print(f'[+]:テンプレートファイル{savaed_filename}を作成しました.')
+		console.print(
+			f'[green][+][/green] テンプレートファイル{savaed_filename}を作成しました.'
+		)
 		f.write(code)
+
+	console.print(f'[info] AI利用にかかったAPIコスト: {gpt.sum_cost}')
 
 
 def solve_problem(file: Filename, lang: Lang) -> None:
+	console = Console()
 	with open(file, 'r') as f:
 		html_content = f.read()
 	md = make_problem_markdown(html_content, 'en')
@@ -126,13 +139,14 @@ def solve_problem(file: Filename, lang: Lang) -> None:
 	file_without_ext = os.path.splitext(file)[0]
 
 	for i in range(1, 4):
-		test_report = ''
-		if i == 1:
-			reply = gpt.tell(md)
-		else:
-			reply = gpt.tell(f"""The following is the test report for the code you provided:
-{test_report}
-Please provide an updated version of the code in {lang2str(lang)}.""")
+		with console.status(f'{i}回目のコード生成...'):
+			test_report = ''
+			if i == 1:
+				reply = gpt.tell(md)
+			else:
+				reply = gpt.tell(f"""The following is the test report for the code you provided:
+	{test_report}
+	Please provide an updated version of the code in {lang2str(lang)}.""")
 
 		code = get_code_from_gpt_output(reply)
 
@@ -143,7 +157,9 @@ Please provide an updated version of the code in {lang2str(lang)}.""")
 			+ FILE_EXTENSIONS[lang]
 		)
 		with open(saved_filename, 'w') as f:
-			print(f'[+]:{gpt.model.value}の出力したコードを保存しました：{f.name}')
+			console.print(
+				f'[green][+][/green] {gpt.model.value} の出力したコードを保存しました：{f.name}'
+			)
 			f.write(code)
 
 		labeled_results = judge_code_from(labeled_cases, saved_filename)
@@ -151,14 +167,14 @@ Please provide an updated version of the code in {lang2str(lang)}.""")
 			render_result_for_GPT(lresult) for lresult in labeled_results
 		)
 
-		print(f'{i}回目のコード生成でのテスト結果:---')
-		render_results(labeled_results)
+		console.rule(f'{i}回目のコード生成でのテスト結果')
+		render_results(saved_filename, labeled_results)
 
 		if all(
 			labeled_result.result.passed == ResultStatus.AC
 			for labeled_result in labeled_results
 		):
-			print('コードのテストに成功!')
+			console.print('[green]コードのテストに成功![/green]')
 			break
 
 	with open(
@@ -168,9 +184,11 @@ Please provide an updated version of the code in {lang2str(lang)}.""")
 		+ FILE_EXTENSIONS[Lang.JSON],
 		'w',
 	) as f:
-		print(f'[+]:{gpt.model.value}の出力のログを保存しました：{f.name}')
+		console.print(
+			f'[green][+][/green] {gpt.model.value}の出力のログを保存しました：{f.name}'
+		)
 		f.write(json.dumps(gpt.messages, indent=2))
-	print(f'AI利用にかかったAPIコスト:{gpt.sum_cost}')
+	console.print(f'AI利用にかかったAPIコスト:{gpt.sum_cost}')
 	return
 
 
