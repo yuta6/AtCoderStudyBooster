@@ -5,10 +5,9 @@ from rich.console import Console
 from atcdr.util.filename import Lang, execute_files
 from atcdr.util.problem import find_link_from_html
 
-console = Console()
-
 
 def open_html(file: str) -> None:
+	console = Console()
 	try:
 		with open(file, 'r') as f:
 			html_content = f.read()
