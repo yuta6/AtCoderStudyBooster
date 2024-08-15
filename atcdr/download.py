@@ -128,7 +128,7 @@ def parse_range(range_str: str) -> List[int]:
 
 
 def parse_diff_range(range_str: str) -> List[Diff]:
-	match = re.match(r'^([A-F])\.\.([A-F])$', range_str)
+	match = re.match(r'^([A-Z])\.\.([A-Z])$', range_str)
 	if match:
 		start, end = match.groups()
 		start_index = ord(start) - ord('A')
@@ -148,7 +148,7 @@ def convert_arg(arg: Union[str, int]) -> Union[List[int], List[Diff]]:
 			return [Diff[arg]]
 		elif re.match(r'^\d+\.\.\d+$', arg):
 			return parse_range(arg)
-		elif re.match(r'^[A-F]\.\.[A-F]$', arg):
+		elif re.match(r'^[A-Z]\.\.[A-Z]$', arg):
 			return parse_diff_range(arg)
 	raise ValueError(f'{arg}は認識できません')
 
