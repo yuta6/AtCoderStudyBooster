@@ -175,9 +175,9 @@ def download(
 		if isinstance(first, Diff):
 			raise ValueError(
 				"""難易度だけでなく, 問題番号も指定してコマンドを実行してください.
-                             例 atcdr -d A 120  : A問題の120をダウンロードます
-                             例 atcdr -d A 120..130  : A問題の120から130をダウンロードます
-                             """
+                    例 atcdr -d A 120  : A問題の120をダウンロードます
+                    例 atcdr -d A 120..130  : A問題の120から130をダウンロードます
+                """
 			)
 		second_args: Union[List[int], List[Diff]] = list(Diff)
 	else:
