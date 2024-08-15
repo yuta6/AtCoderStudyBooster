@@ -49,7 +49,7 @@ def get_problem_html(problem: Problem) -> Optional[str]:
 			time.sleep(retry_wait)
 		elif 300 <= response.status_code < 400:
 			print(
-				f'[Erroe{response.status_code}] リダイレクトが発生しました。abc{problem.number} {problem.difficulty.value}'
+				f'[Error{response.status_code}] リダイレクトが発生しました。abc{problem.number} {problem.difficulty.value}'
 			)
 		elif 400 <= response.status_code < 500:
 			print(
@@ -204,9 +204,9 @@ def download(
 	else:
 		raise ValueError(
 			"""次のような形式で問題を指定してください
-                            例 atcdr -d A 120..130  : A問題の120から130をダウンロードします
-                            例 atcdr -d 120         : ABCのコンテストの問題をダウンロードします
-                         """
+				例 atcdr -d A 120..130  : A問題の120から130をダウンロードします
+				例 atcdr -d 120         : ABCのコンテストの問題をダウンロードします
+            """
 		)
 
 
