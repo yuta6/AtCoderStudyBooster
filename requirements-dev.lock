@@ -66,6 +66,8 @@ platformdirs==4.2.2
 pluggy==1.5.0
     # via pytest
 pre-commit==3.8.0
+prompt-toolkit==3.0.36
+    # via questionary
 pygments==2.18.0
     # via rich
 pytest==8.3.2
@@ -76,6 +78,8 @@ pytz==2024.1
     # via yfinance
 pyyaml==6.0.2
     # via pre-commit
+questionary==2.0.1
+    # via atcoderstudybooster
 regex==2024.7.24
     # via tiktoken
 requests==2.32.3
@@ -110,6 +114,8 @@ urllib3==2.2.2
     # via types-requests
 virtualenv==20.26.3
     # via pre-commit
+wcwidth==0.2.13
+    # via prompt-toolkit
 webencodings==0.5.1
     # via html5lib
 yfinance==0.2.41
