@@ -23,7 +23,7 @@ def get_title_from_html(html: str) -> str:
 
 
 def title_to_filename(title: str) -> str:
-	title = re.sub(r'[\\/*?:"<>| ]', '', title)
+	title = re.sub(r'[\\/*?:"<>| !@#$%^&()+=\[\]{};,\']', '', title)
 	title = re.sub(r'^[A-Z]-', '', title)
 	return title
 
