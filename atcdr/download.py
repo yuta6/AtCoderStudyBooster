@@ -180,12 +180,11 @@ def interactive_download() -> None:
 		instruction='\n 十字キーで移動,[enter]で実行',
 		style=q.Style(
 			[
-				('qmark', 'fg:#2196F3 bold'),
 				('question', 'fg:#2196F3 bold'),
-				('answer', 'fg:#2196F3 bold'),
+				('answer', 'fg:#FFB300 bold'),
 				('pointer', 'fg:#FFB300 bold'),
-				('highlighted', 'fg:#2196F3 bold'),
-				('selected', 'fg:#2196F3 bold'),
+				('highlighted', 'fg:#FFB300 bold'),
+				('selected', 'fg:#FFB300 bold'),
 			]
 		),
 	).ask()
