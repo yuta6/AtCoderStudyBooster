@@ -28,10 +28,10 @@ def execute_files(
 		if len(files) == 1:
 			func(files[0])
 		else:
-			target_files = q.checkbox(
+			target_file = q.select(
 				message='複数のファイルが見つかりました.ファイルを選択してください:',
 				choices=[q.Choice(title=file, value=file) for file in files],
-				instruction='\n 十字キーで移動, [space]で選択, [enter]で実行',
+				instruction='\n 十字キーで移動, [enter]で実行',
 				pointer='❯❯❯',
 				qmark='',
 				style=q.Style(
@@ -45,7 +45,7 @@ def execute_files(
 					]
 				),
 			).ask()
-			list(map(func, target_files))
+			list(map(func, [target_file]))
 	else:
 		target_files = set()
 		for arg in args:
