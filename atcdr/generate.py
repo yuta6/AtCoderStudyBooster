@@ -114,7 +114,7 @@ You must not solve the problem. Please faithfully reproduce the variable names d
 	code = get_code_from_gpt_output(reply)
 
 	savaed_filename = os.path.splitext(file)[0] + FILE_EXTENSIONS[lang]
-	with open(savaed_filename, 'w') as f:
+	with open(savaed_filename, 'x') as f:
 		console.print(
 			f'[green][+][/green] テンプレートファイル{savaed_filename}を作成しました.'
 		)
