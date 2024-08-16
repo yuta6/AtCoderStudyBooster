@@ -71,6 +71,7 @@ def str2lang(lang: str) -> Lang:
 		'cpp': Lang.CPP,
 		'c++': Lang.CPP,
 		'csharp': Lang.CSHARP,
+		'cs': Lang.CSHARP,
 		'c#': Lang.CSHARP,
 		'rb': Lang.RUBY,
 		'ruby': Lang.RUBY,

@@ -70,7 +70,7 @@ def generate_code(file: Filename, lang: Lang) -> None:
 	gpt = ChatGPT(
 		system_prompt=f"""You are an excellent programmer. You solve problems in competitive programming.When a user provides you with a problem from a programming contest called AtCoder, including the Problem,Constraints, Input, Output, Input Example, and Output Example, please carefully consider these and solve the problem.Make sure that your output code block contains no more than two blocks. Pay close attention to the Input, Input Example, Output, and Output Example.Create the solution in {lang2str(lang)}.""",
 	)
-	with console.status('コードを生成しています...'):
+	with console.status(f'{gpt.model.value}がコードを生成しています...'):
 		reply = gpt.tell(md)
 
 	code = get_code_from_gpt_output(reply)
@@ -109,14 +109,14 @@ The user will provide a problem from a programming contest called AtCoder. This 
 
 You must not solve the problem. Please faithfully reproduce the variable names defined in the problem.
     """
-	with console.status('コードを生成しています...'):
+	with console.status(f'{lang2str(lang)}のテンプレートを生成しています...'):
 		reply = gpt.tell(md + propmpt)
 	code = get_code_from_gpt_output(reply)
 
 	savaed_filename = os.path.splitext(file)[0] + FILE_EXTENSIONS[lang]
 	with open(savaed_filename, 'x') as f:
 		console.print(
-			f'[green][+][/green] テンプレートファイル{savaed_filename}を作成しました.'
+			f'[green][+][/green] テンプレートファイルを作成 :{savaed_filename}'
 		)
 		f.write(code)
 
@@ -139,7 +139,7 @@ def solve_problem(file: Filename, lang: Lang) -> None:
 	file_without_ext = os.path.splitext(file)[0]
 
 	for i in range(1, 4):
-		with console.status(f'{i}回目のコード生成...'):
+		with console.status(f'{i}回目のコード生成 (by {gpt.model.value})...'):
 			test_report = ''
 			if i == 1:
 				reply = gpt.tell(md)

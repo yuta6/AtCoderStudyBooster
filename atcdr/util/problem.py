@@ -14,6 +14,7 @@ def repair_html(html: str) -> str:
 		'<meta http-equiv="Content-Language" content="ja">',
 	)
 	html = html.replace('LANG = "en"', 'LANG="ja"')
+	html = remove_unnecessary_emptylines(html)
 	return html
 
 
@@ -58,10 +59,10 @@ def custom_markdownify(html, **options):
 	return CustomMarkdownConverter(**options).convert(html)
 
 
-def remove_unnecessary_emptylines(md_text):
-	md_text = re.sub(r'\n\s*\n\s*\n+', '\n\n', md_text)
-	md_text = md_text.strip()
-	return md_text
+def remove_unnecessary_emptylines(text):
+	text = re.sub(r'\n\s*\n\s*\n+', '\n\n', text)
+	text = text.strip()
+	return text
 
 
 def abstract_problem_part(html_content: str, lang: str) -> str:
