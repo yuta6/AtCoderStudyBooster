@@ -11,6 +11,7 @@ from rich.console import Console, Group, RenderableType
 from rich.markup import escape
 from rich.panel import Panel
 from rich.rule import Rule
+from rich.style import Style
 from rich.table import Table
 from rich.text import Text
 
@@ -224,11 +225,40 @@ def judge_code_from(
 		raise ValueError('適切な言語が見つかりませんでした.')
 
 
-class CustomFormatStyle(Enum):
-	SUCCESS = 'green'
-	FAILURE = 'red'
-	WARNING = 'yellow'
-	INFO = 'blue'
+COLOR_MAP = {
+	ResultStatus.AC: 'green',
+	ResultStatus.WA: 'red',
+	ResultStatus.TLE: 'yellow',
+	ResultStatus.MLE: 'yellow',
+	ResultStatus.RE: 'yellow',
+	ResultStatus.CE: 'yellow',
+	ResultStatus.WJ: 'grey',
+}
+
+STATUS_TEXT_MAP = {
+	ResultStatus.AC: Text(
+		f'\u2713 {ResultStatus.AC.value}',
+		style=Style(color='white', bgcolor=COLOR_MAP[ResultStatus.AC], bold=True),
+	),
+	ResultStatus.WA: Text(
+		f'\u00d7 {ResultStatus.WA.value}', style=COLOR_MAP[ResultStatus.WA]
+	),
+	ResultStatus.TLE: Text(
+		f'\u00d7 {ResultStatus.TLE.value}', style=COLOR_MAP[ResultStatus.TLE]
+	),
+	ResultStatus.MLE: Text(
+		f'\u00d7 {ResultStatus.MLE.value}', style=COLOR_MAP[ResultStatus.MLE]
+	),
+	ResultStatus.RE: Text(
+		f'\u00d7 {ResultStatus.RE.value}', style=COLOR_MAP[ResultStatus.RE]
+	),
+	ResultStatus.CE: Text(
+		f'\u00d7 {ResultStatus.CE.value}', style=COLOR_MAP[ResultStatus.CE]
+	),
+	ResultStatus.WJ: Text(
+		f'\u23f3 {ResultStatus.WJ.value}', style=COLOR_MAP[ResultStatus.WJ]
+	),
+}
 
 
 def create_renderable_test_info(test_info: TestInformation) -> RenderableType:
