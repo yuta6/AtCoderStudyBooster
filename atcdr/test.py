@@ -245,13 +245,13 @@ def create_renderable_test_info(test_info: TestInformation) -> RenderableType:
 	mark = CHECK_MARK if test_info.result_summary == ResultStatus.AC else CROSS_MARK
 
 	header_text = Text.assemble(
-		f'{test_info.sourcename}のテスト結果:',
+		f'{test_info.sourcename}のテスト結果',
 		(
-			f'[bold] {success_count}/{total_count}[/] ',
+			f'{success_count}/{total_count}',
 			'green' if test_info.result_summary == ResultStatus.AC else 'red',
 		),
 		(
-			f'({mark} {test_info.result_summary.value})',
+			f' {mark} {test_info.result_summary.value}',
 			'green' if test_info.result_summary == ResultStatus.AC else 'red',
 		),
 	)
@@ -260,7 +260,7 @@ def create_renderable_test_info(test_info: TestInformation) -> RenderableType:
 
 	if test_info.compiler_message:
 		compiler_message_text = Text.from_markup(
-			f'[white bold]コンパイルエラーのメッセージ:[/]\n[red]{test_info.compiler_message}[/]'
+			f'[white bold]コンパイルエラーのメッセージ[/]\n[red]{test_info.compiler_message}[/]'
 		)
 		components.append(compiler_message_text)
 
