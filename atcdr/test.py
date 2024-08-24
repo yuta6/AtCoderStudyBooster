@@ -2,7 +2,7 @@ import os
 import subprocess
 import tempfile
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, Generator, List, Tuple, Union
 
@@ -66,7 +66,7 @@ class TestInformation:
 	sourcename: str
 	case_number: int
 	result_summary: ResultStatus = ResultStatus.WJ
-	resultlist: List[LabeledTestCaseResult] = []
+	resultlist: List[LabeledTestCaseResult] = field(default_factory=list)  # 修正
 	compiler_message: str = ''
 
 
@@ -245,7 +245,7 @@ def create_renderable_test_info(test_info: TestInformation) -> RenderableType:
 	mark = CHECK_MARK if test_info.result_summary == ResultStatus.AC else CROSS_MARK
 
 	header_text = Text.assemble(
-		f'Test File: {test_info.sourcename}  ',
+		f'{test_info.sourcename}のテスト結果:',
 		(
 			f'[bold] {success_count}/{total_count}[/] ',
 			'green' if test_info.result_summary == ResultStatus.AC else 'red',
