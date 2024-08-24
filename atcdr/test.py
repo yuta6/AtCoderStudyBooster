@@ -236,9 +236,12 @@ COLOR_MAP = {
 }
 
 STATUS_TEXT_MAP = {
-	ResultStatus.AC: Text(
-		f'\u2713 {ResultStatus.AC.value}',
-		style=Style(color='white', bgcolor=COLOR_MAP[ResultStatus.AC], bold=True),
+	ResultStatus.AC: Text.assemble(
+		('\u2713 ', 'green'),
+		(
+			f'{ResultStatus.AC.value}',
+			Style(bgcolor=COLOR_MAP[ResultStatus.AC], bold=True),
+		),
 	),
 	ResultStatus.WA: Text(
 		f'\u00d7 {ResultStatus.WA.value}', style=COLOR_MAP[ResultStatus.WA]
@@ -264,25 +267,20 @@ STATUS_TEXT_MAP = {
 def create_renderable_test_info(test_info: TestInformation) -> RenderableType:
 	components = []
 
-	CHECK_MARK = '\u2713'
-	CROSS_MARK = '\u00d7'
-
 	success_count = sum(
 		1 for result in test_info.resultlist if result.result.passed == ResultStatus.AC
 	)
 	total_count = test_info.case_number
 
-	mark = CHECK_MARK if test_info.result_summary == ResultStatus.AC else CROSS_MARK
+	# 結果に応じたスタイル付きのテキストを取得
+	status_text = STATUS_TEXT_MAP[test_info.result_summary]
 
+	# ヘッダーのテキストを構築
 	header_text = Text.assemble(
-		f'{test_info.sourcename}のテスト結果',
-		(
-			f'{success_count}/{total_count}',
-			'green' if test_info.result_summary == ResultStatus.AC else 'red',
-		),
-		(
-			f' {mark} {test_info.result_summary.value}',
-			'green' if test_info.result_summary == ResultStatus.AC else 'red',
+		Text.from_markup(f'[cyan]{test_info.sourcename}[/]のテスト結果 \n'),
+		status_text,
+		Text.from_markup(
+			f'  [{COLOR_MAP[test_info.result_summary]} bold]{success_count}[/] / [white bold]{total_count}[/]'
 		),
 	)
 
@@ -295,7 +293,7 @@ def create_renderable_test_info(test_info: TestInformation) -> RenderableType:
 		components.append(compiler_message_text)
 
 	# 全体をパネルで囲む（Groupは不要）
-	return Panel(Group(*components), expand=True)
+	return Panel(Group(*components), expand=False)
 
 
 def update_test_info(
@@ -332,24 +330,15 @@ def create_renderable_test_result(
 	i: int,
 	test_result: LabeledTestCaseResult,
 ) -> RenderableType:
-	CHECK_MARK = '\u2713'
-	CROSS_MARK = '\u00d7'
-
-	if test_result.result.passed == ResultStatus.AC:
-		status_text = Text.from_markup(
-			f'[green]{CHECK_MARK}[/] [white on green]{test_result.result.passed.value}[/]'
-		)
-		rule = Rule(title=f'No.{i+1} {test_result.label}', style='green')
-	else:
-		status_text = Text.from_markup(
-			f'[red]{CROSS_MARK} {test_result.result.passed.value}[/]'
-		)
-		rule = Rule(title=f'No.{i+1} {test_result.label}', style='red')
+	rule = Rule(
+		title=f'No.{i+1} {test_result.label}',
+		style=COLOR_MAP[test_result.result.passed],
+	)
 
 	# 以下の部分は if-else ブロックの外に移動
 	status_header = Text.assemble(
 		'ステータス ',
-		status_text,  # status_text をここに追加
+		STATUS_TEXT_MAP[test_result.result.passed],  # status_text をここに追加
 	)
 
 	execution_time_text = None
@@ -362,15 +351,19 @@ def create_renderable_test_result(
 	table.add_column('入力', style='cyan', min_width=10)
 
 	if test_result.result.passed != ResultStatus.AC:
-		table.add_column('出力', style='red', min_width=10)
-		table.add_column('正解の出力', style='green', min_width=10)
+		table.add_column(
+			'出力', style=COLOR_MAP[test_result.result.passed], min_width=10
+		)
+		table.add_column('正解の出力', style=COLOR_MAP[ResultStatus.AC], min_width=10)
 		table.add_row(
 			escape(test_result.testcase.input),
 			escape(test_result.result.output),
 			escape(test_result.testcase.output),
 		)
 	else:
-		table.add_column('出力', style='green', min_width=10)
+		table.add_column(
+			'出力', style=COLOR_MAP[test_result.result.passed], min_width=10
+		)
 		table.add_row(
 			escape(test_result.testcase.input), escape(test_result.result.output)
 		)
