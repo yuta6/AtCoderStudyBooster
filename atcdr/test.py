@@ -265,7 +265,7 @@ def create_renderable_test_info(test_info: TestInformation) -> RenderableType:
 		components.append(compiler_message_text)
 
 	# 全体をパネルで囲む（Groupは不要）
-	return Panel(components, expand=True)
+	return Panel(Group(*components), expand=True)
 
 
 def update_test_info(
@@ -306,18 +306,26 @@ def create_renderable_test_result(
 	CROSS_MARK = '\u00d7'
 
 	if test_result.result.passed == ResultStatus.AC:
-		status_text = f'[green]{CHECK_MARK}[/] [white on green]{test_result.result.passed.value}[/]'
-		rule = Rule(title=f'No.{i+1}', style='green')
+		status_text = Text.from_markup(
+			f'[green]{CHECK_MARK}[/] [white on green]{test_result.result.passed.value}[/]'
+		)
+		rule = Rule(title=f'No.{i+1} {test_result.label}', style='green')
 	else:
-		status_text = f'[red]{CROSS_MARK} {test_result.result.passed.value}[/]'
-		rule = Rule(title=f'No.{i+1}', style='red')
+		status_text = Text.from_markup(
+			f'[red]{CROSS_MARK} {test_result.result.passed.value}[/]'
+		)
+		rule = Rule(title=f'No.{i+1} {test_result.label}', style='red')
 
-	status_header = Text(f'[bold]ステータス:[/] {status_text}')
+	# 以下の部分は if-else ブロックの外に移動
+	status_header = Text.assemble(
+		'ステータス ',
+		status_text,  # status_text をここに追加
+	)
 
 	execution_time_text = None
 	if test_result.result.executed_time is not None:
-		execution_time_text = Text(
-			f'[bold]実行時間:[/] {test_result.result.executed_time} ms'
+		execution_time_text = Text.from_markup(
+			f'実行時間   [cyan]{test_result.result.executed_time}[/cyan] ms'
 		)
 
 	table = Table(show_header=True, header_style='bold')
