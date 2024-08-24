@@ -108,9 +108,9 @@ def run_code(cmd: list, case: TestCase) -> TestCaseResult:
 		proc = subprocess.run(
 			cmd, input=case.input, text=True, capture_output=True, timeout=4
 		)
-		executed_time = int(time.time() - start_time) * 1000
+		executed_time = int((time.time() - start_time) * 1000)
 	except subprocess.TimeoutExpired as e_proc:
-		executed_time = int(time.time() - start_time) * 1000
+		executed_time = int((time.time() - start_time) * 1000)
 		stdout_text = e_proc.stdout.decode('utf-8') if e_proc.stdout is not None else ''
 		stderr_text = e_proc.stderr.decode('utf-8') if e_proc.stderr is not None else ''
 		text = stdout_text + '\n' + stderr_text
