@@ -309,9 +309,9 @@ def update_test_info(
 
 	priority_order = [
 		ResultStatus.RE,
-		ResultStatus.MLE,
-		ResultStatus.TLE,
 		ResultStatus.WA,
+		ResultStatus.TLE,
+		ResultStatus.MLE,
 		ResultStatus.WJ,
 		ResultStatus.AC,
 	]
