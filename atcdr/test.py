@@ -12,6 +12,7 @@ from rich.markup import escape
 from rich.panel import Panel
 from rich.rule import Rule
 from rich.style import Style
+from rich.syntax import Syntax
 from rich.table import Table
 from rich.text import Text
 
@@ -21,6 +22,7 @@ from atcdr.util.filetype import (
 	INTERPRETED_LANGUAGES,
 	Lang,
 	detect_language,
+	lang2str,
 )
 
 
@@ -145,9 +147,9 @@ def run_code(cmd: list, case: TestCase) -> TestCaseResult:
 LANGUAGE_RUN_COMMANDS: Dict[Lang, list] = {
 	Lang.PYTHON: ['python3', '{source_path}'],
 	Lang.JAVASCRIPT: ['node', '{source_path}'],
-	Lang.C: ['./{exec_path}'],
+	Lang.C: ['{exec_path}'],
 	Lang.CPP: ['{exec_path}'],
-	Lang.RUST: ['./{exec_path}'],
+	Lang.RUST: ['{exec_path}'],
 	Lang.JAVA: ['java', '{exec_path}'],
 }
 
@@ -284,16 +286,20 @@ def create_renderable_test_info(test_info: TestInformation) -> RenderableType:
 		),
 	)
 
-	components.append(header_text)
+	components.append(Panel(header_text, expand=False))
 
 	if test_info.compiler_message:
-		compiler_message_text = Text.from_markup(
-			f'[white bold]コンパイルエラーのメッセージ[/]\n[red]{test_info.compiler_message}[/]'
+		rule = Rule(
+			title='コンパイラーのメッセージ',
+			style=COLOR_MAP[ResultStatus.CE],
 		)
-		components.append(compiler_message_text)
+		components.append(rule)
+		error_message = Syntax(
+			test_info.compiler_message, lang2str(test_info.lang), line_numbers=False
+		)
+		components.append(error_message)
 
-	# 全体をパネルで囲む（Groupは不要）
-	return Panel(Group(*components), expand=False)
+	return Group(*components)
 
 
 def update_test_info(
