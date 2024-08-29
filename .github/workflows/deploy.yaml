@@ -1,0 +1,40 @@
+name: Deploy to PyPI
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main' && github.event.pull_request.head.ref == 'develop'
+    name: Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rye
+        shell: bash
+        run: |
+          curl -sSf https://rye.astral.sh/get | bash
+          echo 'source "$HOME/.rye/env"' >> ~/.bashrc
+          source ~/.bashrc
+
+      - name: Sync dependencies
+        run: rye sync
+
+      - name: Build
+        run: rye build
+
+      - name: Publish to PyPI
+        env:
+          PYPI_TOKEN: ${{ secrets.PYPI }}
+        run: rye publish --token $PYPI_TOKEN --yes
