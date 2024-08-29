@@ -1,6 +1,6 @@
 [project]
 name = "AtCoderStudyBooster"
-version = "0.2"
+version = "0.3"
 description = "A tool to download and manage AtCoder problems."
 authors = [
     { name = "yuta6", email = "46110512+yuta6@users.noreply.github.com" }
