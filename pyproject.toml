@@ -1,21 +1,21 @@
 [project]
 name = "AtCoderStudyBooster"
-version = "0.1.1"
+version = "0.2"
 description = "A tool to download and manage AtCoder problems."
 authors = [
     { name = "yuta6", email = "46110512+yuta6@users.noreply.github.com" }
 ]
 dependencies = [
     "beautifulsoup4",
-    "colorama",
     "fire",
     "requests",
     "tiktoken",
     "yfinance",
     "types-requests>=2.32.0.20240712",
     "types-beautifulsoup4>=4.12.0.20240511",
-    "types-colorama>=0.4.15.20240311",
     "markdownify>=0.13.1",
+    "rich>=13.7.1",
+    "questionary>=2.0.1",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"

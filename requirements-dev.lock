@@ -20,8 +20,6 @@ cfgv==3.4.0
     # via pre-commit
 charset-normalizer==3.3.2
     # via requests
-colorama==0.4.6
-    # via atcoderstudybooster
 distlib==0.3.8
     # via virtualenv
 filelock==3.15.4
@@ -40,8 +38,12 @@ iniconfig==2.0.0
     # via pytest
 lxml==5.3.0
     # via yfinance
+markdown-it-py==3.0.0
+    # via rich
 markdownify==0.13.1
     # via atcoderstudybooster
+mdurl==0.1.2
+    # via markdown-it-py
 multitasking==0.0.11
     # via yfinance
 mypy==1.11.1
@@ -64,6 +66,10 @@ platformdirs==4.2.2
 pluggy==1.5.0
     # via pytest
 pre-commit==3.8.0
+prompt-toolkit==3.0.36
+    # via questionary
+pygments==2.18.0
+    # via rich
 pytest==8.3.2
 python-dateutil==2.9.0.post0
     # via pandas
@@ -72,12 +78,16 @@ pytz==2024.1
     # via yfinance
 pyyaml==6.0.2
     # via pre-commit
+questionary==2.0.1
+    # via atcoderstudybooster
 regex==2024.7.24
     # via tiktoken
 requests==2.32.3
     # via atcoderstudybooster
     # via tiktoken
     # via yfinance
+rich==13.7.1
+    # via atcoderstudybooster
 six==1.16.0
     # via fire
     # via html5lib
@@ -90,8 +100,6 @@ termcolor==2.4.0
 tiktoken==0.7.0
     # via atcoderstudybooster
 types-beautifulsoup4==4.12.0.20240511
-    # via atcoderstudybooster
-types-colorama==0.4.15.20240311
     # via atcoderstudybooster
 types-html5lib==1.1.11.20240806
     # via types-beautifulsoup4
@@ -106,6 +114,8 @@ urllib3==2.2.2
     # via types-requests
 virtualenv==20.26.3
     # via pre-commit
+wcwidth==0.2.13
+    # via prompt-toolkit
 webencodings==0.5.1
     # via html5lib
 yfinance==0.2.41

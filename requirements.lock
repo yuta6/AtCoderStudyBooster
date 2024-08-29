@@ -18,8 +18,6 @@ certifi==2024.7.4
     # via requests
 charset-normalizer==3.3.2
     # via requests
-colorama==0.4.6
-    # via atcoderstudybooster
 fire==0.6.0
     # via atcoderstudybooster
 frozendict==2.4.4
@@ -30,8 +28,12 @@ idna==3.7
     # via requests
 lxml==5.3.0
     # via yfinance
+markdown-it-py==3.0.0
+    # via rich
 markdownify==0.13.1
     # via atcoderstudybooster
+mdurl==0.1.2
+    # via markdown-it-py
 multitasking==0.0.11
     # via yfinance
 numpy==2.0.1
@@ -43,17 +45,25 @@ peewee==3.17.6
     # via yfinance
 platformdirs==4.2.2
     # via yfinance
+prompt-toolkit==3.0.36
+    # via questionary
+pygments==2.18.0
+    # via rich
 python-dateutil==2.9.0.post0
     # via pandas
 pytz==2024.1
     # via pandas
     # via yfinance
+questionary==2.0.1
+    # via atcoderstudybooster
 regex==2024.7.24
     # via tiktoken
 requests==2.32.3
     # via atcoderstudybooster
     # via tiktoken
     # via yfinance
+rich==13.7.1
+    # via atcoderstudybooster
 six==1.16.0
     # via fire
     # via html5lib
@@ -67,8 +77,6 @@ tiktoken==0.7.0
     # via atcoderstudybooster
 types-beautifulsoup4==4.12.0.20240511
     # via atcoderstudybooster
-types-colorama==0.4.15.20240311
-    # via atcoderstudybooster
 types-html5lib==1.1.11.20240806
     # via types-beautifulsoup4
 types-requests==2.32.0.20240712
@@ -78,6 +86,8 @@ tzdata==2024.1
 urllib3==2.2.2
     # via requests
     # via types-requests
+wcwidth==0.2.13
+    # via prompt-toolkit
 webencodings==0.5.1
     # via html5lib
 yfinance==0.2.41

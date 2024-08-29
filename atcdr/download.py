@@ -3,11 +3,22 @@ import re
 import time
 from dataclasses import dataclass
 from enum import Enum
-from typing import Callable, List, Match, Optional, Union, cast
+from typing import Callable, List, Optional, Union, cast
 
+import questionary as q
 import requests
+from rich.console import Console
+from rich.prompt import IntPrompt, Prompt
 
-from atcdr.util.problem import make_problem_markdown
+from atcdr.util.filetype import FILE_EXTENSIONS, Lang
+from atcdr.util.problem import (
+	get_title_from_html,
+	make_problem_markdown,
+	repair_html,
+	title_to_filename,
+)
+
+console = Console()
 
 
 class Diff(Enum):
@@ -37,63 +48,42 @@ def get_problem_html(problem: Problem) -> Optional[str]:
 		if response.status_code == 200:
 			return response.text
 		elif response.status_code == 429:
-			print(
-				f'[Error{response.status_code}] 再試行します. abc{problem.number} {problem.difficulty.value}'
+			console.print(
+				f'[bold yellow][Error {response.status_code}][/bold yellow] 再試行します。abc{problem.number} {problem.difficulty.value}'
 			)
 			time.sleep(retry_wait)
 		elif 300 <= response.status_code < 400:
-			print(
-				f'[Erroe{response.status_code}] リダイレクトが発生しました。abc{problem.number} {problem.difficulty.value}'
+			console.print(
+				f'[bold yellow][Error {response.status_code}][/bold yellow] リダイレクトが発生しました。abc{problem.number} {problem.difficulty.value}'
 			)
 		elif 400 <= response.status_code < 500:
-			print(
-				f'[Error{response.status_code}] 問題が見つかりません。abc{problem.number} {problem.difficulty.value}'
+			console.print(
+				f'[bold red][Error {response.status_code}][/bold red] 問題が見つかりません。abc{problem.number} {problem.difficulty.value}'
 			)
 			break
 		elif 500 <= response.status_code < 600:
-			print(
-				f'[Error{response.status_code}] サーバーエラーが発生しました。abc{problem.number} {problem.difficulty.value}'
+			console.print(
+				f'[bold red][Error {response.status_code}][/bold red] サーバーエラーが発生しました。abc{problem.number} {problem.difficulty.value}'
 			)
 			break
 		else:
-			print(
-				f'[Error{response.status_code}] abc{problem.number} {problem.difficulty.value}に対応するHTMLファイルを取得できませんでした。'
+			console.print(
+				f'[bold red][Error {response.status_code}][/bold red] abc{problem.number} {problem.difficulty.value}に対応するHTMLファイルを取得できませんでした。'
 			)
 			break
-	return None
-
-
-def repair_html(html: str) -> str:
-	html = html.replace('//img.atcoder.jp', 'https://img.atcoder.jp')
-	html = html.replace(
-		'<meta http-equiv="Content-Language" content="en">',
-		'<meta http-equiv="Content-Language" content="ja">',
-	)
-	html = html.replace('LANG = "en"', 'LANG="ja"')
-	return html
-
-
-def get_title_from_html(html: str) -> Optional[str]:
-	title_match: Optional[Match[str]] = re.search(
-		r'<title>(?:.*?-\s*)?([^<]*)</title>', html, re.IGNORECASE | re.DOTALL
-	)
-	if title_match:
-		title: str = title_match.group(1).replace(' ', '')
-		title = re.sub(r'[\\/*?:"<>| ]', '', title)
-		return title
 	return None
 
 
 def save_file(file_path: str, html: str) -> None:
 	with open(file_path, 'w', encoding='utf-8') as file:
 		file.write(html)
-	print(f'[+] ファイルを保存しました :{file_path}')
+	console.print(f'[bold green][+][/bold green] ファイルを保存しました :{file_path}')
 
 
 def mkdir(path: str) -> None:
 	if not os.path.exists(path):
 		os.makedirs(path)
-		print(f'[+] フォルダー: {path} を作成しました')
+		console.print(f'[bold green][+][/bold green] フォルダー: {path} を作成しました')
 
 
 class GenerateMode:
@@ -117,17 +107,20 @@ def generate_problem_directory(
 			continue
 
 		title = get_title_from_html(html)
-		if title is None:
-			print('[Error] タイトルが取得できませんでした')
+		if not title:
+			console.print('[bold red][Error][/bold red] タイトルが取得できませんでした')
 			title = f'problem{problem.number}{problem.difficulty.value}'
+
+		title = title_to_filename(title)
 
 		mkdir(dir_path)
 		repaired_html = repair_html(html)
 
-		html_path = os.path.join(dir_path, f'{title}.html')
+		html_path = os.path.join(dir_path, title + FILE_EXTENSIONS[Lang.HTML])
 		save_file(html_path, repaired_html)
 		md = make_problem_markdown(html, 'ja')
-		save_file(os.path.join(dir_path, f'{title}.md'), md)
+		md_path = os.path.join(dir_path, title + FILE_EXTENSIONS[Lang.MARKDOWN])
+		save_file(md_path, md)
 
 
 def parse_range(range_str: str) -> List[int]:
@@ -136,11 +129,11 @@ def parse_range(range_str: str) -> List[int]:
 		start, end = map(int, match.groups())
 		return list(range(start, end + 1))
 	else:
-		raise ValueError('Invalid range format')
+		raise ValueError('数字の範囲の形式が間違っています')
 
 
 def parse_diff_range(range_str: str) -> List[Diff]:
-	match = re.match(r'^([A-F])\.\.([A-F])$', range_str)
+	match = re.match(r'^([A-Z])\.\.([A-Z])$', range_str)
 	if match:
 		start, end = match.groups()
 		start_index = ord(start) - ord('A')
@@ -150,7 +143,7 @@ def parse_diff_range(range_str: str) -> List[Diff]:
 	raise ValueError('A..C の形式になっていません')
 
 
-def convert_arg(arg: Union[str, int]) -> Union[List[int], List[Diff]]:
+def convert_arg(arg: str) -> Union[List[int], List[Diff]]:
 	if isinstance(arg, int):
 		return [arg]
 	elif isinstance(arg, str):
@@ -160,7 +153,7 @@ def convert_arg(arg: Union[str, int]) -> Union[List[int], List[Diff]]:
 			return [Diff[arg]]
 		elif re.match(r'^\d+\.\.\d+$', arg):
 			return parse_range(arg)
-		elif re.match(r'^[A-F]\.\.[A-F]$', arg):
+		elif re.match(r'^[A-Z]\.\.[A-Z]$', arg):
 			return parse_diff_range(arg)
 	raise ValueError(f'{arg}は認識できません')
 
@@ -173,13 +166,87 @@ def are_all_diffs(args: Union[List[int], List[Diff]]) -> bool:
 	return all(isinstance(arg, Diff) for arg in args)
 
 
+def interactive_download() -> None:
+	CONTEST = '1. 特定のコンテストの問題を解きたい'
+	PRACTICE = '2. 特定の難易度の問題を集中的に練習したい'
+	ONE_FILE = '3. 1ファイルだけダウンロードする'
+	END = '4. 終了する'
+
+	choice = q.select(
+		message='AtCoderの問題のHTMLファイルをダウンロードします',
+		qmark='',
+		pointer='❯❯❯',
+		choices=[CONTEST, PRACTICE, ONE_FILE, END],
+		instruction='\n 十字キーで移動,[enter]で実行',
+		style=q.Style(
+			[
+				('question', 'fg:#2196F3 bold'),
+				('answer', 'fg:#FFB300 bold'),
+				('pointer', 'fg:#FFB300 bold'),
+				('highlighted', 'fg:#FFB300 bold'),
+				('selected', 'fg:#FFB300 bold'),
+			]
+		),
+	).ask()
+
+	if choice == CONTEST:
+		number = IntPrompt.ask(
+			'コンテスト番号を入力してください (例: 120)',
+		)
+		contest_diffs = list(Diff)
+
+		problems = [Problem(number, diff) for diff in contest_diffs]
+
+		generate_problem_directory('.', problems, GenerateMode.gene_path_on_num)
+
+	elif choice == PRACTICE:
+		diff = Prompt.ask(
+			'難易度を入力してください (例: A)',
+		)
+		try:
+			diff = Diff[diff.upper()]
+		except KeyError:
+			raise ValueError('入力された難易度が認識できません')
+		number_str = Prompt.ask(
+			'コンテスト番号または範囲を入力してください (例: 120..130)'
+		)
+		if number_str.isdigit():
+			contest_numbers = [int(number_str)]
+		elif re.match(r'^\d+\.\.\d+$', number_str):
+			contest_numbers = parse_range(number_str)
+		else:
+			raise ValueError('数字の範囲の形式が間違っています')
+
+		problems = [Problem(number, diff) for number in contest_numbers]
+
+		generate_problem_directory('.', problems, GenerateMode.gene_path_on_diff)
+
+	elif choice == ONE_FILE:
+		contest_number = IntPrompt.ask(
+			'コンテスト番号を入力してください (例: 120)',
+		)
+		difficulty = Prompt.ask(
+			'難易度を入力してください (例: A)', choices=[d.name for d in Diff]
+		)
+
+		difficulty = difficulty.upper().strip()
+
+		problem = Problem(contest_number, Diff[difficulty])
+		generate_problem_directory('.', [problem], GenerateMode.gene_path_on_num)
+
+	elif choice == END:
+		console.print('終了します', style='bold red')
+	else:
+		console.print('無効な選択です', style='bold red')
+
+
 def download(
 	first: Union[str, int, None] = None,
 	second: Union[str, int, None] = None,
 	base_path: str = '.',
 ) -> None:
 	if first is None:
-		main()
+		interactive_download()
 		return
 
 	first_args = convert_arg(str(first))
@@ -187,9 +254,9 @@ def download(
 		if isinstance(first, Diff):
 			raise ValueError(
 				"""難易度だけでなく, 問題番号も指定してコマンドを実行してください.
-                             例 atcdr -d A 120  : A問題の120をダウンロードます
-                             例 atcdr -d A 120..130  : A問題の120から130をダウンロードます
-                             """
+                    例 atcdr -d A 120  : A問題の120をダウンロードます
+                    例 atcdr -d A 120..130  : A問題の120から130をダウンロードます
+                """
 			)
 		second_args: Union[List[int], List[Diff]] = list(Diff)
 	else:
@@ -216,51 +283,7 @@ def download(
 	else:
 		raise ValueError(
 			"""次のような形式で問題を指定してください
-                            例 atcdr -d A 120..130  : A問題の120から130をダウンロードします
-                            例 atcdr -d 120         : ABCのコンテストの問題をダウンロードします
-                         """
+                例 atcdr -d A 120..130  : A問題の120から130をダウンロードします
+                例 atcdr -d 120         : ABCのコンテストの問題をダウンロードします
+            """
 		)
-
-
-def main() -> None:
-	print('AtCoderの問題のHTMLファイルをダウンロードします')
-	print(
-		"""
-    1. 番号の範囲を指定してダウンロードする
-    2. 1ファイルだけダウンロードする
-    q: 終了
-    """
-	)
-
-	choice = input('選択してください: ')
-
-	if choice == '1':
-		start_end = input(
-			'開始と終了のコンテストの番号をスペースで区切って指定してください (例: 223 230): '
-		)
-		start, end = map(int, start_end.split(' '))
-		difficulty = Diff[
-			input(
-				'ダウンロードする問題の難易度を指定してください (例: A, B, C): '
-			).upper()
-		]
-		problem_list = [Problem(number, difficulty) for number in range(start, end + 1)]
-		generate_problem_directory('.', problem_list, GenerateMode.gene_path_on_diff)
-	elif choice == '2':
-		number = int(input('コンテストの番号を指定してください: '))
-		difficulty = Diff[
-			input(
-				'ダウンロードする問題の難易度を指定してください (例: A, B, C): '
-			).upper()
-		]
-		generate_problem_directory(
-			'.', [Problem(number, difficulty)], GenerateMode.gene_path_on_diff
-		)
-	elif choice == 'q':
-		print('終了します')
-	else:
-		print('無効な選択です')
-
-
-if __name__ == '__main__':
-	main()
