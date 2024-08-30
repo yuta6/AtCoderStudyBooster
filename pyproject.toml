@@ -49,5 +49,5 @@ ignore = ["E501"]  # E501 - 行の長さ制限を無視
 
 [tool.ruff.format]
 quote-style = "single"
-indent-style = "tab"
+indent-style = "space"
 docstring-code-format = true
