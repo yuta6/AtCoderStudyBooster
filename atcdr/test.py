@@ -11,6 +11,7 @@ from rich.console import Group, RenderableType
 from rich.live import Live
 from rich.markup import escape
 from rich.panel import Panel
+from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn
 from rich.rule import Rule
 from rich.style import Style
 from rich.syntax import Syntax
@@ -275,7 +276,9 @@ STATUS_TEXT_MAP = {
 }
 
 
-def create_renderable_test_info(test_info: TestInformation) -> RenderableType:
+def create_renderable_test_info(
+	test_info: TestInformation, progress: Progress
+) -> RenderableType:
 	components = []
 
 	success_count = sum(
@@ -300,7 +303,7 @@ def create_renderable_test_info(test_info: TestInformation) -> RenderableType:
 		),
 	)
 
-	components.append(Panel(header_text, expand=False))
+	components.append(Panel(Group(header_text, progress), expand=False))
 
 	if test_info.compiler_message:
 		rule = Rule(
@@ -411,19 +414,29 @@ def render_results(
 		raise ValueError('最初のジェネレーターの結果はTestInformationです')
 	test_info: TestInformation = first_result
 
-	current_display = [create_renderable_test_info(test_info)]
+	progress = Progress(
+		SpinnerColumn(style='white', spinner_name='circleHalves'),
+		TextColumn('{task.description}'),
+		SpinnerColumn(style='white', spinner_name='simpleDots'),
+		BarColumn(),
+	)
+	task_id = progress.add_task(description='テスト進行中', total=test_info.case_number)
+
+	current_display = [create_renderable_test_info(test_info, progress)]
 
 	# 各テストケースの結果表示
 	with Live(Group(*current_display)) as live:
 		for i, result in enumerate(results):
 			if isinstance(result, LabeledTestCaseResult):
-				current_display[-1] = create_renderable_test_info(
-					update_test_info(test_info, result)
-				)
+				progress.advance(task_id, advance=1)
+				test_info = update_test_info(test_info, result)
+				current_display[-1] = create_renderable_test_info(test_info, progress)
 				current_display.insert(-1, (create_renderable_test_result(i, result)))
 				live.update(Group(*current_display))
 			else:
 				raise ValueError('テスト結果がyieldする型はLabeledTestCaseResultです')
+
+		progress.update(task_id, description='テスト完了')  # 完了メッセージに更新
 
 
 def run_test(path_of_code: str) -> None:
