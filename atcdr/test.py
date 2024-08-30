@@ -7,7 +7,8 @@ from enum import Enum
 from typing import Dict, Generator, List, Optional, Tuple, Union
 
 from bs4 import BeautifulSoup as bs
-from rich.console import Console, Group, RenderableType
+from rich.console import Group, RenderableType
+from rich.live import Live
 from rich.markup import escape
 from rich.panel import Panel
 from rich.rule import Rule
@@ -317,7 +318,7 @@ def create_renderable_test_info(test_info: TestInformation) -> RenderableType:
 
 def update_test_info(
 	test_info: TestInformation, test_result: LabeledTestCaseResult
-) -> None:
+) -> TestInformation:
 	test_info.resultlist.append(test_result)
 
 	priority_order = [
@@ -343,6 +344,8 @@ def update_test_info(
 		test_info.result_summary = ResultStatus.AC
 	else:
 		test_info.result_summary = highest_priority_status
+
+	return test_info
 
 
 def create_renderable_test_result(
@@ -400,23 +403,26 @@ def create_renderable_test_result(
 def render_results(
 	results: Generator[Union[LabeledTestCaseResult, TestInformation], None, None],
 ) -> None:
-	console = Console()
-
 	# 最初の結果は TestInformation として取得
 	first_result = next(results)
 	if not isinstance(first_result, TestInformation):
 		raise ValueError('最初のジェネレーターの結果はTestInformationです')
 	test_info: TestInformation = first_result
 
-	# 各テストケースの結果表示
-	for i, result in enumerate(results):
-		if isinstance(result, LabeledTestCaseResult):
-			console.print(create_renderable_test_result(i, result))
-			update_test_info(test_info, result)
-		else:
-			raise ValueError('テスト結果がyieldする型はLabeledTestCaseResultです')
+	current_display = [create_renderable_test_info(test_info)]
 
-	console.print(create_renderable_test_info(test_info))
+	# 各テストケースの結果表示
+	with Live(Group(*current_display)) as live:
+		for i, result in enumerate(results):
+			if isinstance(result, LabeledTestCaseResult):
+				current_display[-1] = create_renderable_test_info(
+					update_test_info(test_info, result)
+				)
+				current_display.insert(-1, (create_renderable_test_result(i, result)))
+				time.sleep(0.5)
+				live.update(Group(*current_display))
+			else:
+				raise ValueError('テスト結果がyieldする型はLabeledTestCaseResultです')
 
 
 def run_test(path_of_code: str) -> None:
