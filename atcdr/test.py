@@ -4,7 +4,7 @@ import tempfile
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, Generator, List, Tuple, Union
+from typing import Dict, Generator, List, Optional, Tuple, Union
 
 from bs4 import BeautifulSoup as bs
 from rich.console import Console, Group, RenderableType
@@ -71,6 +71,7 @@ class TestInformation:
 	result_summary: ResultStatus = ResultStatus.WJ
 	resultlist: List[LabeledTestCaseResult] = field(default_factory=list)  # 修正
 	compiler_message: str = ''
+	compile_time: Optional[int] = None
 
 
 def create_testcases_from_html(html: str) -> List[LabeledTestCase]:
@@ -110,9 +111,11 @@ def run_code(cmd: list, case: TestCase) -> TestCaseResult:
 		proc = subprocess.run(
 			cmd, input=case.input, text=True, capture_output=True, timeout=4
 		)
-		executed_time = int((time.time() - start_time) * 1000)
+		end_time = time.time()
+		executed_time = int((end_time - start_time) * 1000)
 	except subprocess.TimeoutExpired as e_proc:
-		executed_time = int((time.time() - start_time) * 1000)
+		end_time = time.time()
+		executed_time = int((end_time - start_time) * 1000)
 		stdout_text = e_proc.stdout.decode('utf-8') if e_proc.stdout is not None else ''
 		stderr_text = e_proc.stderr.decode('utf-8') if e_proc.stderr is not None else ''
 		text = stdout_text + '\n' + stderr_text
@@ -161,16 +164,20 @@ LANGUAGE_COMPILE_COMMANDS: Dict[Lang, list] = {
 }
 
 
-def run_compile(path: str, lang: Lang) -> Tuple[str, subprocess.CompletedProcess]:
+def run_compile(
+	path: str, lang: Lang
+) -> Tuple[str, subprocess.CompletedProcess, Optional[int]]:
 	with tempfile.NamedTemporaryFile(delete=True) as tmp:
 		exec_path = tmp.name
 	cmd = [
 		arg.format(source_path=path, exec_path=exec_path)
 		for arg in LANGUAGE_COMPILE_COMMANDS[lang]
 	]
+	start_time = time.time()
 	compile_result = subprocess.run(cmd, capture_output=True, text=True)
+	compile_time = int((time.time() - start_time) * 1000)
 
-	return exec_path, compile_result
+	return exec_path, compile_result, compile_time
 
 
 def judge_code_from(
@@ -182,7 +189,7 @@ def judge_code_from(
 ]:
 	lang = detect_language(path)
 	if lang in COMPILED_LANGUAGES:
-		exe_path, compile_result = run_compile(path, lang)
+		exe_path, compile_result, compile_time = run_compile(path, lang)
 		if compile_result.returncode != 0:
 			yield TestInformation(
 				lang=lang,
@@ -198,6 +205,7 @@ def judge_code_from(
 				sourcename=path,
 				case_number=len(lcases),
 				compiler_message=compile_result.stderr,
+				compile_time=compile_time,
 			)
 
 			cmd = [
@@ -279,7 +287,12 @@ def create_renderable_test_info(test_info: TestInformation) -> RenderableType:
 
 	# ヘッダーのテキストを構築
 	header_text = Text.assemble(
-		Text.from_markup(f'[cyan]{test_info.sourcename}[/]のテスト結果 \n'),
+		Text.from_markup(f'[cyan]{test_info.sourcename}[/]のテスト \n'),
+		Text.from_markup(
+			f'[italic #0f0f0f]コンパイルにかかった時間: [not italic cyan]{test_info.compile_time}[/] ms[/]\n'
+		)
+		if test_info.compile_time
+		else Text(''),
 		status_text,
 		Text.from_markup(
 			f'  [{COLOR_MAP[test_info.result_summary]} bold]{success_count}[/] / [white bold]{total_count}[/]'
