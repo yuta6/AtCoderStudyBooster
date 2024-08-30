@@ -340,7 +340,9 @@ def update_test_info(
 			highest_priority_status = status
 
 	# 特殊ケース: すべてのテストケースがACである場合（途中でも）
-	if all(result.result.passed == ResultStatus.AC for result in test_info.resultlist):
+	if len(test_info.resultlist) == test_info.case_number and all(
+		result.result.passed == ResultStatus.AC for result in test_info.resultlist
+	):
 		test_info.result_summary = ResultStatus.AC
 	else:
 		test_info.result_summary = highest_priority_status
@@ -419,7 +421,6 @@ def render_results(
 					update_test_info(test_info, result)
 				)
 				current_display.insert(-1, (create_renderable_test_result(i, result)))
-				time.sleep(0.5)
 				live.update(Group(*current_display))
 			else:
 				raise ValueError('テスト結果がyieldする型はLabeledTestCaseResultです')
