@@ -1,7 +1,6 @@
 import json
 import os
 import re
-from typing import Optional
 from urllib.parse import unquote
 
 import requests
@@ -63,18 +62,23 @@ def print_rich_response(
         print(body_panel)
 
 
-def load_session() -> Optional[requests.Session]:
+def load_session() -> requests.Session:
+    ATCODER_URL = 'https://atcoder.jp'
     cookie_file = os.path.join('~', 'cache', 'atcder', 'session.json')
     if not os.path.exists(cookie_file):
-        return None
+        return requests.Session()
     else:
         with open(cookie_file) as file:
             session = requests.Session()
             session.cookies.update(json.load(file))
         if validate_session(session):
-            return requests.Session()
+            response = session.get(ATCODER_URL)
+            username = get_username_from_html(response.text)
+            if username:
+                print(f'こんにちは！[cyan]{username}[/] さん')
+            return session
         else:
-            return None
+            return requests.Session()
 
 
 def save_session(session: requests.Session) -> None:
@@ -94,18 +98,11 @@ def validate_session(session: requests.Session) -> bool:
             ATCODER_SETTINGS_URL, allow_redirects=False
         )  # リダイレクトを追跡しない
         if response.status_code == 200:
-            username = get_username_from_html(response.text)
-            if username:
-                print(f'こんにちは！[cyan]{username}[/] さん')
             return True
         elif response.status_code in (301, 302) and 'Location' in response.headers:
             redirect_url = response.headers['Location']
             if 'login' in redirect_url:
-                print('[red][-][/] セッションが無効です ログインしてください.')
                 return False
-        print(
-            f'[red][-][/] セッションが無効です ステータスコード: {response.status_code}'
-        )
         return False
     except requests.RequestException as e:
         print(f'[red][-][/] セッションチェック中にエラーが発生しました: {e}')
