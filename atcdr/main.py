@@ -28,7 +28,6 @@ MAP_COMMANDS: dict = {
     'markdown': markdown,
     'md': markdown,
     'login': login,
-    'l': login,
     '--version': get_version,
     '-v': get_version,
 }
