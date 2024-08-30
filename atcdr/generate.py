@@ -89,7 +89,7 @@ def generate_code(file: Filename, lang: Lang) -> None:
 		)
 		f.write(code)
 
-	console.print(f'[cyan][info][/] AI利用にかかったAPIコスト:{gpt.sum_cost}')
+	console.print(f'AI利用にかかったAPIコスト:{gpt.sum_cost}')
 
 
 def generate_template(file: Filename, lang: Lang) -> None:
@@ -125,7 +125,7 @@ You must not solve the problem. Please faithfully reproduce the variable names d
 		)
 		f.write(code)
 
-	console.print(f'[cyan][info][/] AI利用にかかったAPIコスト:{gpt.sum_cost}')
+	console.print(f'AI利用にかかったAPIコスト:{gpt.sum_cost}')
 
 
 def solve_problem(file: Filename, lang: Lang) -> None:
@@ -143,7 +143,7 @@ def solve_problem(file: Filename, lang: Lang) -> None:
 
 	file_without_ext = os.path.splitext(file)[0]
 
-	for i in range(1, 3):
+	for i in range(1, 4):
 		with console.status(f'{i}回目のコード生成中 (by {gpt.model.value})'):
 			if i == 1:
 				test_report = ''
@@ -169,8 +169,11 @@ Please provide an updated version of the code in {lang2str(lang)}."""
 			console.print(f'[green][+][/] コードの生成に成功しました！：{f.name}')
 			f.write(code)
 
-		test_results = judge_code_from(labeled_cases, saved_filename)
-		test_report, is_ac = render_result_for_GPT(test_results)
+		with console.status(
+			f'{gpt.model.value}が生成したコードをテスト中', spinner='circleHalves'
+		):
+			test_results = judge_code_from(labeled_cases, saved_filename)
+			test_report, is_ac = render_result_for_GPT(test_results)
 
 		if is_ac:
 			console.print('[green][+][/] コードのテストに成功!')
@@ -189,7 +192,7 @@ Please provide an updated version of the code in {lang2str(lang)}."""
 			f'[green][+][/] {gpt.model.value}の出力のログを保存しました：{f.name}'
 		)
 		f.write(json.dumps(gpt.messages, indent=2))
-	console.print(f'[cyan][info][/] AI利用にかかったAPIコスト:{gpt.sum_cost}')
+	console.print(f'AI利用にかかったAPIコスト:{gpt.sum_cost}')
 	return
 
 
