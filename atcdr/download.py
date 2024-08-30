@@ -6,7 +6,6 @@ from enum import Enum
 from typing import Callable, List, Optional, Union, cast
 
 import questionary as q
-import requests
 from rich.console import Console
 from rich.prompt import IntPrompt, Prompt
 
@@ -17,6 +16,7 @@ from atcdr.util.problem import (
     repair_html,
     title_to_filename,
 )
+from atcdr.util.session import load_session
 
 console = Console()
 
@@ -39,12 +39,12 @@ class Problem:
 
 def get_problem_html(problem: Problem) -> Optional[str]:
     url = f'https://atcoder.jp/contests/abc{problem.number}/tasks/abc{problem.number}_{problem.difficulty.value.lower()}'
-    response = requests.get(url)
+    session = load_session()
     retry_attempts = 3
     retry_wait = 1  # 1 second
 
     for _ in range(retry_attempts):
-        response = requests.get(url)
+        response = session.get(url)
         if response.status_code == 200:
             return response.text
         elif response.status_code == 429:

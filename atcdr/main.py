@@ -5,6 +5,8 @@ from rich.traceback import install
 
 from atcdr.download import download
 from atcdr.generate import generate
+from atcdr.login import login
+from atcdr.logout import logout
 from atcdr.markdown import markdown
 from atcdr.open import open_files
 from atcdr.test import test
@@ -26,6 +28,8 @@ MAP_COMMANDS: dict = {
     'g': generate,
     'markdown': markdown,
     'md': markdown,
+    'login': login,
+    'logout': logout,
     '--version': get_version,
     '-v': get_version,
 }
