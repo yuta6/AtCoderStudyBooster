@@ -39,4 +39,4 @@ def login() -> None:
         console.print('[green][+][/] ログインに成功しました.  ')
         save_session(session)
     else:
-        console.print('[green][-][/] ログインに失敗しました.  ')
+        console.print('[red][-][/] ログインに失敗しました.  ')
