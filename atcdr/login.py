@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup as bs
 from rich.console import Console
 from rich.prompt import Prompt
 
-from atcdr.util.session import load_session, save_session
+from atcdr.util.session import load_session, save_session, validate_session
 
 
 def login() -> None:
@@ -12,8 +12,8 @@ def login() -> None:
 
     console = Console()
     session = load_session()
-    if session:
-        console.print('[green][+][/] すでにログインしています.  ')
+    if validate_session(session):
+        console.print('[green][+][/] すでにログイン済みです.  ')
         return
 
     username = Prompt.ask('[cyan]ユーザー名を入力してください[/]', console=console)
