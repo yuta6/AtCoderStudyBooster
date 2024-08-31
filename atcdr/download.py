@@ -1,12 +1,9 @@
 import os
 import re
-import time
-from dataclasses import dataclass
-from enum import Enum
-from typing import Callable, List, Optional, Union, cast
+from typing import Callable, List, Union, cast
 
 import questionary as q
-from rich.console import Console
+from rich import print
 from rich.prompt import IntPrompt, Prompt
 
 from atcdr.util.filetype import FILE_EXTENSIONS, Lang
@@ -16,74 +13,19 @@ from atcdr.util.parse import (
     repair_html,
     title_to_filename,
 )
-from atcdr.util.session import load_session
-
-console = Console()
-
-
-class Diff(Enum):
-    A = 'A'
-    B = 'B'
-    C = 'C'
-    D = 'D'
-    E = 'E'
-    F = 'F'
-    G = 'G'
-
-
-@dataclass
-class Problem:
-    number: int
-    difficulty: Diff
-
-
-def get_problem_html(problem: Problem) -> Optional[str]:
-    url = f'https://atcoder.jp/contests/abc{problem.number}/tasks/abc{problem.number}_{problem.difficulty.value.lower()}'
-    session = load_session()
-    retry_attempts = 3
-    retry_wait = 1  # 1 second
-
-    for _ in range(retry_attempts):
-        response = session.get(url)
-        if response.status_code == 200:
-            return response.text
-        elif response.status_code == 429:
-            console.print(
-                f'[bold yellow][Error {response.status_code}][/bold yellow] 再試行します。abc{problem.number} {problem.difficulty.value}'
-            )
-            time.sleep(retry_wait)
-        elif 300 <= response.status_code < 400:
-            console.print(
-                f'[bold yellow][Error {response.status_code}][/bold yellow] リダイレクトが発生しました。abc{problem.number} {problem.difficulty.value}'
-            )
-        elif 400 <= response.status_code < 500:
-            console.print(
-                f'[bold red][Error {response.status_code}][/bold red] 問題が見つかりません。abc{problem.number} {problem.difficulty.value}'
-            )
-            break
-        elif 500 <= response.status_code < 600:
-            console.print(
-                f'[bold red][Error {response.status_code}][/bold red] サーバーエラーが発生しました。abc{problem.number} {problem.difficulty.value}'
-            )
-            break
-        else:
-            console.print(
-                f'[bold red][Error {response.status_code}][/bold red] abc{problem.number} {problem.difficulty.value}に対応するHTMLファイルを取得できませんでした。'
-            )
-            break
-    return None
+from atcdr.util.problem import Diff, Problem, ProblemDownloader
 
 
 def save_file(file_path: str, html: str) -> None:
     with open(file_path, 'w', encoding='utf-8') as file:
         file.write(html)
-    console.print(f'[bold green][+][/bold green] ファイルを保存しました :{file_path}')
+    print(f'[bold green][+][/bold green] ファイルを保存しました :{file_path}')
 
 
 def mkdir(path: str) -> None:
     if not os.path.exists(path):
         os.makedirs(path)
-        console.print(f'[bold green][+][/bold green] フォルダー: {path} を作成しました')
+        print(f'[bold green][+][/bold green] フォルダー: {path} を作成しました')
 
 
 class GenerateMode:
@@ -99,16 +41,17 @@ class GenerateMode:
 def generate_problem_directory(
     base_path: str, problems: List[Problem], gene_path: Callable[[str, int, Diff], str]
 ) -> None:
+    downloader = ProblemDownloader()
     for problem in problems:
         dir_path = gene_path(base_path, problem.number, problem.difficulty)
 
-        html = get_problem_html(problem)
+        html = downloader.get(problem)
         if html is None:
             continue
 
         title = get_title_from_html(html)
         if not title:
-            console.print('[bold red][Error][/bold red] タイトルが取得できませんでした')
+            print('[bold red][Error][/bold red] タイトルが取得できませんでした')
             title = f'problem{problem.number}{problem.difficulty.value}'
 
         title = title_to_filename(title)
@@ -235,9 +178,9 @@ def interactive_download() -> None:
         generate_problem_directory('.', [problem], GenerateMode.gene_path_on_num)
 
     elif choice == END:
-        console.print('終了します', style='bold red')
+        print('[bold red]終了します[/]')
     else:
-        console.print('無効な選択です', style='bold red')
+        print('[bold red]無効な選択です[/]')
 
 
 def download(
