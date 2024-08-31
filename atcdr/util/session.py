@@ -11,6 +11,8 @@ from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.table import Table
 
+COOKIE_PATH = os.path.join(os.path.expanduser('~'), '.cache', 'atcder', 'session.json')
+
 
 def print_rich_response(
     response: requests.Response, body_range: tuple = (0, 24)
@@ -64,11 +66,10 @@ def print_rich_response(
 
 def load_session() -> requests.Session:
     ATCODER_URL = 'https://atcoder.jp'
-    cookie_file = os.path.join('~', 'cache', 'atcder', 'session.json')
-    if not os.path.exists(cookie_file):
+    if not os.path.exists(COOKIE_PATH):
         return requests.Session()
     else:
-        with open(cookie_file) as file:
+        with open(COOKIE_PATH) as file:
             session = requests.Session()
             session.cookies.update(json.load(file))
         if validate_session(session):
@@ -83,9 +84,8 @@ def load_session() -> requests.Session:
 
 def save_session(session: requests.Session) -> None:
     if validate_session(session):
-        cookie_file = os.path.join('~', 'cache', 'atcder', 'session.json')
-        os.makedirs(os.path.dirname(cookie_file), exist_ok=True)
-        with open(cookie_file, 'w') as file:
+        os.makedirs(os.path.dirname(COOKIE_PATH), exist_ok=True)
+        with open(COOKIE_PATH, 'w') as file:
             json.dump(session.cookies.get_dict(), file)
     else:
         pass
@@ -127,6 +127,5 @@ def get_username_from_html(html: str) -> str:
 
 
 def delete_session() -> None:
-    cookie_file = os.path.join('~', 'cache', 'atcder', 'session.json')
-    if os.path.exists(cookie_file):
-        os.remove(cookie_file)
+    if os.path.exists(COOKIE_PATH):
+        os.remove(COOKIE_PATH)
