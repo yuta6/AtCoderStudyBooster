@@ -140,13 +140,13 @@ def solve_problem(file: Filename, lang: Lang) -> None:
 
     for i in range(1, 4):
         with console.status(f'{i}回目のコード生成 (by {gpt.model.value})...'):
-            test_report = ''
             if i == 1:
+                test_report = ''
                 reply = gpt.tell(md)
             else:
                 reply = gpt.tell(f"""The following is the test report for the code you provided:
-	{test_report}
-	Please provide an updated version of the code in {lang2str(lang)}.""")
+    {test_report}
+    Please provide an updated version of the code in {lang2str(lang)}.""")
 
         code = get_code_from_gpt_output(reply)
 
