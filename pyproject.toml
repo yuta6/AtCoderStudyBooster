@@ -1,6 +1,6 @@
 [project]
 name = "AtCoderStudyBooster"
-version = "0.23"
+version = "0.24"
 description = "A tool to download and manage AtCoder problems."
 authors = [
     { name = "yuta6", email = "46110512+yuta6@users.noreply.github.com" }
@@ -10,7 +10,7 @@ dependencies = [
     "fire",
     "requests",
     "tiktoken",
-    "yfinance",
+    "yfinance==0.2.41",
     "types-requests>=2.32.0.20240712",
     "types-beautifulsoup4>=4.12.0.20240511",
     "markdownify>=0.13.1",
