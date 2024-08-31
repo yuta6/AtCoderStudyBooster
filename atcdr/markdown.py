@@ -5,7 +5,7 @@ from rich.markdown import Markdown
 
 from atcdr.util.execute import execute_files
 from atcdr.util.filetype import FILE_EXTENSIONS, Lang
-from atcdr.util.problem import make_problem_markdown
+from atcdr.util.parse import make_problem_markdown
 
 
 def save_markdown(html_path: str, lang: str) -> None:

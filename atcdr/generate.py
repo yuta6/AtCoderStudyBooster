@@ -22,7 +22,7 @@ from atcdr.util.filetype import (
     str2lang,
 )
 from atcdr.util.gpt import ChatGPT, set_api_key
-from atcdr.util.problem import make_problem_markdown
+from atcdr.util.parse import make_problem_markdown
 
 
 def get_code_from_gpt_output(output: str) -> str:

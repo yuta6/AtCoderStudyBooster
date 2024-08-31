@@ -10,7 +10,7 @@ from rich.console import Console
 from rich.prompt import IntPrompt, Prompt
 
 from atcdr.util.filetype import FILE_EXTENSIONS, Lang
-from atcdr.util.problem import (
+from atcdr.util.parse import (
     get_title_from_html,
     make_problem_markdown,
     repair_html,
