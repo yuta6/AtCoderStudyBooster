@@ -379,7 +379,10 @@ def create_renderable_test_result(
 
     if test_result.result.passed != ResultStatus.AC:
         table.add_column(
-            '出力', style=COLOR_MAP[test_result.result.passed], min_width=10
+            '出力',
+            style=COLOR_MAP[test_result.result.passed],
+            min_width=10,
+            overflow='fold',
         )
         table.add_column('正解の出力', style=COLOR_MAP[ResultStatus.AC], min_width=10)
         table.add_row(
