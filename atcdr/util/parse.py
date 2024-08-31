@@ -23,6 +23,23 @@ def get_title_from_html(html: str) -> str:
     return title.group(1).strip() if title else ''
 
 
+def get_username_from_html(html: str) -> str:
+    soup = bs(html, 'html.parser')
+    script_tags = soup.find_all('script')
+
+    user_screen_name = ''
+    for script in script_tags:
+        # <script>タグに内容がある場合のみ処理を行う
+        if script.string:
+            # 正規表現でuserScreenNameの値を抽出
+            match = re.search(r'userScreenName\s*=\s*"([^"]+)"', script.string)
+            if match:
+                user_screen_name = match.group(1)
+                break  # 見つかったらループを抜ける
+
+    return user_screen_name
+
+
 def title_to_filename(title: str) -> str:
     title = re.sub(r'[\\/*?:"<>| !@#$%^&()+=\[\]{};,\']', '', title)
     title = re.sub(r'^[A-Z]-', '', title)
@@ -89,3 +106,9 @@ def make_problem_markdown(html_content: str, lang: str) -> str:
     problem_md = f'# {title}\n{problem_md}'
     problem_md = remove_unnecessary_emptylines(problem_md)
     return problem_md
+
+
+def get_csrf_token(html_content: str) -> str:
+    soup = bs(html_content, 'html.parser')
+    csrf_token = soup.find('input', {'name': 'csrf_token'})['value']
+    return csrf_token if csrf_token else ''
