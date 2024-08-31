@@ -155,7 +155,7 @@ LANGUAGE_RUN_COMMANDS: Dict[Lang, list] = {
     Lang.C: ['{exec_path}'],
     Lang.CPP: ['{exec_path}'],
     Lang.RUST: ['{exec_path}'],
-    Lang.JAVA: ['java', '{exec_path}'],
+    Lang.JAVA: ['java', os.path.splitext(os.path.basename('{source_path}'))[0]],
 }
 
 LANGUAGE_COMPILE_COMMANDS: Dict[Lang, list] = {
@@ -211,7 +211,8 @@ def judge_code_from(
             )
 
             cmd = [
-                arg.format(exec_path=exe_path) for arg in LANGUAGE_RUN_COMMANDS[lang]
+                arg.format(source_path=path, exec_path=exe_path)
+                for arg in LANGUAGE_RUN_COMMANDS[lang]
             ]
 
             for lcase in lcases:
