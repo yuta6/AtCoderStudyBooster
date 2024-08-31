@@ -1,15 +1,17 @@
 import json
 import os
 import re
+from typing import Generator, List, Union, cast
 
 from rich.console import Console
+from rich.syntax import Syntax
 
 from atcdr.test import (
     LabeledTestCaseResult,
     ResultStatus,
+    TestInformation,
     create_testcases_from_html,
     judge_code_from,
-    render_results,
 )
 from atcdr.util.execute import execute_files
 from atcdr.util.filetype import (
@@ -29,34 +31,34 @@ def get_code_from_gpt_output(output: str) -> str:
     return match.group(1) if match else ''
 
 
-def render_result_for_GPT(lresult: LabeledTestCaseResult) -> str:
-    output = f'{lresult.label} of Test:\n'
-    result = lresult.result
-    testcase = lresult.testcase
+def render_result_for_GPT(
+    results: Generator[Union[TestInformation, LabeledTestCaseResult], None, None],
+) -> tuple[str, bool]:
+    first_result = next(results)
+    if not isinstance(first_result, TestInformation):
+        raise ValueError('最初のジェネレーターの結果はTestInformationです')
+    test_info: TestInformation = first_result
 
-    if result.passed == ResultStatus.AC:
-        output += 'Accepted !! \n'
+    if test_info.result_summary == ResultStatus.CE:
+        return f'Compile Error \n {test_info.compiler_message}', False
+    else:
+        results_list = cast(List[LabeledTestCaseResult], list(results))
 
-    elif result.passed == ResultStatus.WA:
-        output += (
-            f'Wrong Answer\n'
-            f'Output:\n{result.output}\n'
-            f'Expected Output:\n{testcase.output}\n'
-        )
-
-    elif result.passed == ResultStatus.RE:
-        output += f'[RE] Runtime Error\n  Output:\n{result.output}'
-
-    elif result.passed == ResultStatus.TLE:
-        output += '[TLE] Time Limit Exceeded\n'
-
-    elif result.passed == ResultStatus.CE:
-        output += f'[CE] Compile Error\n  Output:\n{result.output}'
-
-    elif result.passed == ResultStatus.MLE:
-        output += '[ME] Memory Limit Exceeded\n'
-
-    return output
+        if all(result.result.passed == ResultStatus.AC for result in results_list):
+            return 'ac', True
+        else:
+            message_for_gpt = ''
+            for result in results_list:
+                match result.result.passed:
+                    case ResultStatus.AC:
+                        message_for_gpt += f'\n{result.label} => Accepted\nInput :\n{result.testcase.input}\nOutput :\n{result.result.output}\n'
+                    case ResultStatus.RE:
+                        message_for_gpt += f'\n{result.label} => Runtime Error\nInput :\n{result.testcase.input}\nOutput :\n{result.result.output}\n'
+                    case ResultStatus.WA:
+                        message_for_gpt += f'\n{result.label} => Wrong Answer\nInput :\n{result.testcase.input}\nOutput :\n{result.result.output}\nExpected :\n{result.testcase.output}\n'
+                    case ResultStatus.TLE:
+                        message_for_gpt += f'\n{result.label} => Time Limit Exceeded\nInput :\n{result.testcase.input}\nOutput :\n{result.result.output}\n'
+            return message_for_gpt, False
 
 
 def generate_code(file: Filename, lang: Lang) -> None:
@@ -70,10 +72,13 @@ def generate_code(file: Filename, lang: Lang) -> None:
     gpt = ChatGPT(
         system_prompt=f"""You are an excellent programmer. You solve problems in competitive programming.When a user provides you with a problem from a programming contest called AtCoder, including the Problem,Constraints, Input, Output, Input Example, and Output Example, please carefully consider these and solve the problem.Make sure that your output code block contains no more than two blocks. Pay close attention to the Input, Input Example, Output, and Output Example.Create the solution in {lang2str(lang)}.""",
     )
-    with console.status(f'{gpt.model.value}がコードを生成しています...'):
+    with console.status(f'コード生成中 (by {gpt.model.value})'):
         reply = gpt.tell(md)
 
     code = get_code_from_gpt_output(reply)
+    console.print('[green][+][/green] コードの生成に成功しました. ')
+    console.rule(f'{gpt.model.value}による{lang2str(lang)}コード')
+    console.print(Syntax(code=code, lexer=lang2str(lang)))
 
     saved_filename = (
         os.path.splitext(file)[0] + f'_by_{gpt.model.value}' + FILE_EXTENSIONS[lang]
@@ -84,7 +89,7 @@ def generate_code(file: Filename, lang: Lang) -> None:
         )
         f.write(code)
 
-    console.print(f'[info] AI利用にかかったAPIコスト: {gpt.sum_cost}')
+    console.print(f'AI利用にかかったAPIコスト:{gpt.sum_cost}')
 
 
 def generate_template(file: Filename, lang: Lang) -> None:
@@ -120,7 +125,7 @@ You must not solve the problem. Please faithfully reproduce the variable names d
         )
         f.write(code)
 
-    console.print(f'[info] AI利用にかかったAPIコスト: {gpt.sum_cost}')
+    console.print(f'AI利用にかかったAPIコスト:{gpt.sum_cost}')
 
 
 def solve_problem(file: Filename, lang: Lang) -> None:
@@ -139,14 +144,18 @@ def solve_problem(file: Filename, lang: Lang) -> None:
     file_without_ext = os.path.splitext(file)[0]
 
     for i in range(1, 4):
-        with console.status(f'{i}回目のコード生成 (by {gpt.model.value})...'):
+        with console.status(f'{i}回目のコード生成中 (by {gpt.model.value})'):
             if i == 1:
                 test_report = ''
                 reply = gpt.tell(md)
             else:
-                reply = gpt.tell(f"""The following is the test report for the code you provided:
-    {test_report}
-    Please provide an updated version of the code in {lang2str(lang)}.""")
+                prompt = f"""The following is the test report for the code you provided:
+                {test_report}
+Please provide an updated version of the code in {lang2str(lang)}."""
+                console.print(
+                    f'[green][+][/] 次のプロンプトを{gpt.model.value}に与え,再生成します\n{prompt}'
+                )
+                reply = gpt.tell(prompt)
 
         code = get_code_from_gpt_output(reply)
 
@@ -157,25 +166,20 @@ def solve_problem(file: Filename, lang: Lang) -> None:
             + FILE_EXTENSIONS[lang]
         )
         with open(saved_filename, 'w') as f:
-            console.print(
-                f'[green][+][/green] {gpt.model.value} の出力したコードを保存しました：{f.name}'
-            )
+            console.print(f'[green][+][/] コードの生成に成功しました！：{f.name}')
             f.write(code)
 
-        labeled_results = judge_code_from(labeled_cases, saved_filename)
-        test_report = '\n'.join(
-            render_result_for_GPT(lresult) for lresult in labeled_results
-        )
-
-        console.rule(f'{i}回目のコード生成でのテスト結果')
-        render_results(saved_filename, labeled_results)
-
-        if all(
-            labeled_result.result.passed == ResultStatus.AC
-            for labeled_result in labeled_results
+        with console.status(
+            f'{gpt.model.value}が生成したコードをテスト中', spinner='circleHalves'
         ):
-            console.print('[green]コードのテストに成功![/green]')
+            test_results = judge_code_from(labeled_cases, saved_filename)
+            test_report, is_ac = render_result_for_GPT(test_results)
+
+        if is_ac:
+            console.print('[green][+][/] コードのテストに成功!')
             break
+        else:
+            console.print('[red][-][/] コードのテストに失敗!')
 
     with open(
         'log_'
@@ -185,7 +189,7 @@ def solve_problem(file: Filename, lang: Lang) -> None:
         'w',
     ) as f:
         console.print(
-            f'[green][+][/green] {gpt.model.value}の出力のログを保存しました：{f.name}'
+            f'[green][+][/] {gpt.model.value}の出力のログを保存しました：{f.name}'
         )
         f.write(json.dumps(gpt.messages, indent=2))
     console.print(f'AI利用にかかったAPIコスト:{gpt.sum_cost}')
