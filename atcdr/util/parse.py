@@ -42,7 +42,7 @@ def get_username_from_html(html: str) -> str:
 
 def title_to_filename(title: str) -> str:
     title = re.sub(r'[\\/*?:"<>| !@#$%^&()+=\[\]{};,\']', '', title)
-    title = re.sub(r'^[A-Z]-', '', title)
+    title = re.sub(r'.*?-', '', title)
     return title
 
 
@@ -112,3 +112,27 @@ def get_csrf_token(html_content: str) -> str:
     soup = bs(html_content, 'html.parser')
     csrf_token = soup.find('input', {'name': 'csrf_token'})['value']
     return csrf_token if csrf_token else ''
+
+
+def get_problem_url_from_tasks(html_content: str) -> list[tuple[str, str]]:
+    soup = bs(html_content, 'html.parser')
+    table = soup.find('table')
+    if not table:
+        raise ValueError('問題のテーブルが見つかりませんでした.')
+
+    # tbodyタグを見つける
+    tbody = table.find('tbody')
+    if not tbody:
+        raise ValueError('tbodyが見つかりませんでした.')
+
+    # tbody内の1列目のaタグのリンクと中身を取得
+    links = []
+    for row in tbody.find_all('tr'):
+        first_column = row.find('td')
+        a_tag = first_column.find('a')
+        if a_tag and 'href' in a_tag.attrs:
+            link = 'https://atcoder.jp' + a_tag['href']
+            label = a_tag.text.strip()
+            links.append((label, link))
+
+    return links

@@ -1,10 +1,11 @@
 import os
 import re
+import time
 from typing import Callable, List, Union, cast
 
 import questionary as q
 from rich import print
-from rich.prompt import IntPrompt, Prompt
+from rich.prompt import Prompt
 
 from atcdr.util.filetype import FILE_EXTENSIONS, Lang
 from atcdr.util.parse import (
@@ -13,7 +14,48 @@ from atcdr.util.parse import (
     repair_html,
     title_to_filename,
 )
-from atcdr.util.problem import Diff, Problem, ProblemDownloader
+from atcdr.util.problem import Contest, Diff, Problem
+from atcdr.util.session import load_session
+
+
+class Downloader:
+    def __init__(self) -> None:
+        self.session = load_session()
+
+    def get(self, problem: Problem) -> str:
+        session = self.session
+        retry_attempts = 3
+        retry_wait = 1  # 1 second
+
+        for _ in range(retry_attempts):
+            response = session.get(problem.url)
+            if response.status_code == 200:
+                return response.text
+            elif response.status_code == 429:
+                print(
+                    f'[bold yellow][Error {response.status_code}][/bold yellow] 再試行します。{problem}'
+                )
+                time.sleep(retry_wait)
+            elif 300 <= response.status_code < 400:
+                print(
+                    f'[bold yellow][Error {response.status_code}][/bold yellow] リダイレクトが発生しました。{problem}'
+                )
+            elif 400 <= response.status_code < 500:
+                print(
+                    f'[bold red][Error {response.status_code}][/bold red] 問題が見つかりません。{problem}'
+                )
+                break
+            elif 500 <= response.status_code < 600:
+                print(
+                    f'[bold red][Error {response.status_code}][/bold red] サーバーエラーが発生しました。{problem}'
+                )
+                break
+            else:
+                print(
+                    f'[bold red][Error {response.status_code}][/bold red] {problem}に対応するHTMLファイルを取得できませんでした。'
+                )
+                break
+        return ''
 
 
 def save_file(file_path: str, html: str) -> None:
@@ -30,29 +72,37 @@ def mkdir(path: str) -> None:
 
 class GenerateMode:
     @staticmethod
-    def gene_path_on_diff(base: str, number: int, diff: Diff) -> str:
-        return os.path.join(base, diff.name, str(number))
+    def gene_path_on_diff(base: str, problem: Problem) -> str:
+        return (
+            os.path.join(base, problem.label, f'{problem.contest.number:03}')
+            if problem.contest.number
+            else os.path.join(base, problem.label, problem.contest.contest)
+        )
 
     @staticmethod
-    def gene_path_on_num(base: str, number: int, diff: Diff) -> str:
-        return os.path.join(base, str(number), diff.name)
+    def gene_path_on_num(base: str, problem: Problem) -> str:
+        return (
+            os.path.join(base, f'{problem.contest.number:03}', problem.label)
+            if problem.contest.number
+            else os.path.join(base, problem.contest.contest, problem.label)
+        )
 
 
 def generate_problem_directory(
-    base_path: str, problems: List[Problem], gene_path: Callable[[str, int, Diff], str]
+    base_path: str, problems: List[Problem], gene_path: Callable[[str, Problem], str]
 ) -> None:
-    downloader = ProblemDownloader()
+    downloader = Downloader()
     for problem in problems:
-        dir_path = gene_path(base_path, problem.number, problem.difficulty)
+        dir_path = gene_path(base_path, problem)
 
         html = downloader.get(problem)
-        if html is None:
+        if not html:
             continue
 
         title = get_title_from_html(html)
         if not title:
             print('[bold red][Error][/bold red] タイトルが取得できませんでした')
-            title = f'problem{problem.number}{problem.difficulty.value}'
+            title = f'{problem}'
 
         title = title_to_filename(title)
 
@@ -66,39 +116,30 @@ def generate_problem_directory(
         save_file(md_path, md)
 
 
-def parse_range(range_str: str) -> List[int]:
-    match = re.match(r'^(\d+)\.\.(\d+)$', range_str)
-    if match:
-        start, end = map(int, match.groups())
-        return list(range(start, end + 1))
-    else:
-        raise ValueError('数字の範囲の形式が間違っています')
+def parse_range(match: re.Match) -> List[int]:
+    start, end = map(int, match.groups())
+    start, end = min(start, end), max(start, end)
+    return list(range(start, end + 1))
 
 
-def parse_diff_range(range_str: str) -> List[Diff]:
-    match = re.match(r'^([A-Z])\.\.([A-Z])$', range_str)
-    if match:
-        start, end = match.groups()
-        start_index = ord(start) - ord('A')
-        end_index = ord(end) - ord('A')
-        if start_index <= end_index:
-            return [Diff(chr(i + ord('A'))) for i in range(start_index, end_index + 1)]
-    raise ValueError('A..C の形式になっていません')
+def parse_diff_range(match: re.Match) -> List[Diff]:
+    start, end = match.groups()
+    start_index = min(ord(start.upper()), ord(end.upper()))
+    end_index = max(ord(start.upper()), ord(end.upper()))
+    return [Diff(chr(i)) for i in range(start_index, end_index + 1)]
 
 
 def convert_arg(arg: str) -> Union[List[int], List[Diff]]:
-    if isinstance(arg, int):
-        return [arg]
-    elif isinstance(arg, str):
-        if arg.isdigit():
-            return [int(arg)]
-        elif arg in Diff.__members__:
-            return [Diff[arg]]
-        elif re.match(r'^\d+\.\.\d+$', arg):
-            return parse_range(arg)
-        elif re.match(r'^[A-Z]\.\.[A-Z]$', arg):
-            return parse_diff_range(arg)
-    raise ValueError(f'{arg}は認識できません')
+    if arg.isdigit():
+        return [int(arg)]
+    elif arg.isalpha() and len(arg) == 1:
+        return [Diff(arg)]
+    elif match := re.match(r'^(\d+)\.\.(\d+)$', arg):
+        return parse_range(match)
+    elif match := re.match(r'^([A-Z])\.\.([A-Z])$', arg, re.IGNORECASE):
+        return parse_diff_range(match)
+    else:
+        raise ValueError(f'{arg}は認識できません')
 
 
 def are_all_integers(args: Union[List[int], List[Diff]]) -> bool:
@@ -110,9 +151,9 @@ def are_all_diffs(args: Union[List[int], List[Diff]]) -> bool:
 
 
 def interactive_download() -> None:
-    CONTEST = '1. 特定のコンテストの問題を解きたい'
+    CONTEST = '1. コンテストの問題を解きたい'
     PRACTICE = '2. 特定の難易度の問題を集中的に練習したい'
-    ONE_FILE = '3. 1ファイルだけダウンロードする'
+    ONE_FILE = '3. 1問だけダウンロードする'
     END = '4. 終了する'
 
     choice = q.select(
@@ -132,22 +173,23 @@ def interactive_download() -> None:
         ),
     ).ask()
 
-    if choice == CONTEST:
-        number = IntPrompt.ask(
-            'コンテスト番号を入力してください (例: 120)',
-        )
-        contest_diffs = list(Diff)
+    session = load_session()
 
-        problems = [Problem(number, diff) for diff in contest_diffs]
+    if choice == CONTEST:
+        name = Prompt.ask(
+            'コンテスト名を入力してください (例: abc012, abs, typical90)',
+        )
+
+        problems = Contest(name=name).problems(session=session)
 
         generate_problem_directory('.', problems, GenerateMode.gene_path_on_num)
 
     elif choice == PRACTICE:
-        diff = Prompt.ask(
+        difficulty = Prompt.ask(
             '難易度を入力してください (例: A)',
         )
         try:
-            diff = Diff[diff.upper()]
+            difficulty = Diff(difficulty)
         except KeyError:
             raise ValueError('入力された難易度が認識できません')
         number_str = Prompt.ask(
@@ -155,26 +197,45 @@ def interactive_download() -> None:
         )
         if number_str.isdigit():
             contest_numbers = [int(number_str)]
-        elif re.match(r'^\d+\.\.\d+$', number_str):
-            contest_numbers = parse_range(number_str)
+        elif match := re.match(r'^\d+\.\.\d+$', number_str):
+            contest_numbers = parse_range(match)
         else:
             raise ValueError('数字の範囲の形式が間違っています')
 
-        problems = [Problem(number, diff) for number in contest_numbers]
+        problems = [
+            Problem(contest=Contest('abc', number), difficulty=difficulty)
+            for number in contest_numbers
+        ]
 
         generate_problem_directory('.', problems, GenerateMode.gene_path_on_diff)
 
     elif choice == ONE_FILE:
-        contest_number = IntPrompt.ask(
-            'コンテスト番号を入力してください (例: 120)',
-        )
-        difficulty = Prompt.ask(
-            '難易度を入力してください (例: A)', choices=[d.name for d in Diff]
+        name = Prompt.ask(
+            'コンテスト名を入力してください (例: abc012, abs, typical90)',
         )
 
-        difficulty = difficulty.upper().strip()
+        problems = Contest(name=name).problems(session=session)
 
-        problem = Problem(contest_number, Diff[difficulty])
+        problem = q.select(
+            message='どの問題をダウンロードしますか?',
+            qmark='',
+            pointer='❯❯❯',
+            choices=[
+                q.Choice(title=f'{problem.label:10} | {problem.url}', value=problem)
+                for problem in problems
+            ],
+            instruction='\n 十字キーで移動,[enter]で実行',
+            style=q.Style(
+                [
+                    ('question', 'fg:#2196F3 bold'),
+                    ('answer', 'fg:#FFB300 bold'),
+                    ('pointer', 'fg:#FFB300 bold'),
+                    ('highlighted', 'fg:#FFB300 bold'),
+                    ('selected', 'fg:#FFB300 bold'),
+                ]
+            ),
+        ).ask()
+
         generate_problem_directory('.', [problem], GenerateMode.gene_path_on_num)
 
     elif choice == END:
@@ -201,7 +262,7 @@ def download(
                     例 atcdr -d A 120..130  : A問題の120から130をダウンロードます
                 """
             )
-        second_args: Union[List[int], List[Diff]] = list(Diff)
+        second_args: Union[List[int], List[Diff]] = convert_arg('A..G')
     else:
         second_args = convert_arg(str(second))
 
@@ -209,7 +270,7 @@ def download(
         first_args_int = cast(List[int], first_args)
         second_args_diff = cast(List[Diff], second_args)
         problems = [
-            Problem(number, diff)
+            Problem(Contest('abc', number), difficulty=diff)
             for number in first_args_int
             for diff in second_args_diff
         ]
@@ -218,7 +279,7 @@ def download(
         first_args_diff = cast(List[Diff], first_args)
         second_args_int = cast(List[int], second_args)
         problems = [
-            Problem(number, diff)
+            Problem(Contest('abc', number), difficulty=diff)
             for diff in first_args_diff
             for number in second_args_int
         ]

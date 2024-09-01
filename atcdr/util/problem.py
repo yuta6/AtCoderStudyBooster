@@ -1,64 +1,94 @@
-import time
-from dataclasses import dataclass
-from enum import Enum
+from typing import List, Optional
 
-from rich import print
+import requests
 
-from atcdr.util.session import load_session
+from atcdr.util.parse import get_problem_url_from_tasks
 
 
-class Diff(Enum):
-    A = 'A'
-    B = 'B'
-    C = 'C'
-    D = 'D'
-    E = 'E'
-    F = 'F'
-    G = 'G'
+class Contest:
+    def __init__(self, name: str, number: Optional[int] = None):
+        if not name:
+            raise ValueError('nameは必須です')
+        self._name = name
+        self._number = number
+        if number and number > 0:
+            self._contest = f'{name}{number:03}'
+        else:
+            self._contest = name
+
+    @property
+    def contest(self) -> str:
+        return self._contest
+
+    @property
+    def number(self) -> Optional[int]:
+        return self._number
+
+    @property
+    def url(self) -> str:
+        return f'https://atcoder.jp/contests/{self.contest}/tasks'
+
+    def __str__(self) -> str:
+        return f'{self.contest}'
+
+    def __repr__(self) -> str:
+        return f'Contest(name={self._name}, number={self._number})'
+
+    def problems(self, session: Optional[requests.Session] = None) -> List['Problem']:
+        session = session or requests.Session()
+        response = session.get(self.url)
+
+        if response.status_code != 200:
+            return []
+
+        return [
+            Problem(self, label=label, url=url)
+            for label, url in get_problem_url_from_tasks(response.text)
+        ]
 
 
-@dataclass
+class Diff(str):
+    def __new__(cls, diff: str) -> 'Diff':
+        if isinstance(diff, str) and len(diff) == 1 and diff.isalpha():
+            return super().__new__(cls, diff.upper())
+        raise ValueError('diffは英大文字または小文字の1文字である必要があります')
+
+    def __repr__(self) -> str:
+        return f"Diff('{self}')"
+
+
 class Problem:
-    number: int
-    difficulty: Diff
+    def __init__(
+        self,
+        contest: Contest,
+        difficulty: Optional[Diff] = None,
+        label: Optional[str] = None,
+        url: Optional[str] = None,
+    ):
+        self._contest = contest
+        if difficulty:
+            self._label = difficulty.upper()
+            self._url = contest.url + f'/{contest}_{difficulty.lower()}'
+        elif label and url:
+            self._label = label
+            self._url = url
+        else:
+            raise ValueError('labelとurlは両方必須かdifficultyが必要です')
 
+    @property
+    def contest(self) -> Contest:
+        return self._contest
 
-class ProblemDownloader:
-    def __init__(self) -> None:
-        self.session = load_session()
+    @property
+    def label(self) -> str:
+        return self._label
 
-    def get(self, problem: Problem) -> str:
-        url = f'https://atcoder.jp/contests/abc{problem.number}/tasks/abc{problem.number}_{problem.difficulty.value.lower()}'
-        session = self.session
-        retry_attempts = 3
-        retry_wait = 1  # 1 second
+    @property
+    def url(self) -> str:
+        return self._url
 
-        for _ in range(retry_attempts):
-            response = session.get(url)
-            if response.status_code == 200:
-                return response.text
-            elif response.status_code == 429:
-                print(
-                    f'[bold yellow][Error {response.status_code}][/bold yellow] 再試行します。abc{problem.number} {problem.difficulty.value}'
-                )
-                time.sleep(retry_wait)
-            elif 300 <= response.status_code < 400:
-                print(
-                    f'[bold yellow][Error {response.status_code}][/bold yellow] リダイレクトが発生しました。abc{problem.number} {problem.difficulty.value}'
-                )
-            elif 400 <= response.status_code < 500:
-                print(
-                    f'[bold red][Error {response.status_code}][/bold red] 問題が見つかりません。abc{problem.number} {problem.difficulty.value}'
-                )
-                break
-            elif 500 <= response.status_code < 600:
-                print(
-                    f'[bold red][Error {response.status_code}][/bold red] サーバーエラーが発生しました。abc{problem.number} {problem.difficulty.value}'
-                )
-                break
-            else:
-                print(
-                    f'[bold red][Error {response.status_code}][/bold red] abc{problem.number} {problem.difficulty.value}に対応するHTMLファイルを取得できませんでした。'
-                )
-                break
-        return ''
+    def __repr__(self) -> str:
+        return f'Problem(contest={self.contest}, label={self.label}, url={self.url})'
+
+    def __str__(self) -> str:
+        return f'{self.contest} {self.label}'
