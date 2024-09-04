@@ -6,7 +6,6 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, Generator, List, Optional, Tuple, Union
 
-from bs4 import BeautifulSoup as bs
 from rich.console import Group, RenderableType
 from rich.live import Live
 from rich.markup import escape
@@ -26,6 +25,7 @@ from atcdr.util.filetype import (
     detect_language,
     lang2str,
 )
+from atcdr.util.parse import ProblemHTML
 
 
 @dataclass
@@ -74,37 +74,6 @@ class TestInformation:
     resultlist: List[LabeledTestCaseResult] = field(default_factory=list)  # 修正
     compiler_message: str = ''
     compile_time: Optional[int] = None
-
-
-def create_testcases_from_html(html: str) -> List[LabeledTestCase]:
-    soup = bs(html, 'html.parser')
-    test_cases = []
-
-    for i in range(1, 20):
-        sample_input_section = soup.find('h3', text=f'Sample Input {i}')
-        sample_output_section = soup.find('h3', text=f'Sample Output {i}')
-        if not sample_input_section or not sample_output_section:
-            break
-
-        sample_input_pre = sample_input_section.find_next('pre')
-        sample_output_pre = sample_output_section.find_next('pre')
-
-        sample_input = (
-            sample_input_pre.get_text(strip=True)
-            if sample_input_pre is not None
-            else ''
-        )
-        sample_output = (
-            sample_output_pre.get_text(strip=True)
-            if sample_output_pre is not None
-            else ''
-        )
-
-        test_case = TestCase(input=sample_input, output=sample_output)
-        labeled_test_case = LabeledTestCase(label=f'Sample {i}', case=test_case)
-        test_cases.append(labeled_test_case)
-
-    return test_cases
 
 
 def run_code(cmd: list, case: TestCase) -> TestCaseResult:
@@ -454,9 +423,10 @@ def run_test(path_of_code: str) -> None:
     with open(html_paths[0], 'r') as file:
         html = file.read()
 
-    test_cases = create_testcases_from_html(html)
-    test_results = judge_code_from(test_cases, path_of_code)
-    render_results(test_results)
+    ltest_cases = ProblemHTML(html).load_labeled_testcase()
+
+    ltest_results = judge_code_from(ltest_cases, path_of_code)
+    render_results(ltest_results)
 
 
 def test(*args: str) -> None:

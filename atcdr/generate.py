@@ -10,7 +10,6 @@ from atcdr.test import (
     LabeledTestCaseResult,
     ResultStatus,
     TestInformation,
-    create_testcases_from_html,
     judge_code_from,
 )
 from atcdr.util.execute import execute_files
@@ -22,7 +21,7 @@ from atcdr.util.filetype import (
     str2lang,
 )
 from atcdr.util.gpt import ChatGPT, set_api_key
-from atcdr.util.parse import make_problem_markdown
+from atcdr.util.parse import ProblemHTML
 
 
 def get_code_from_gpt_output(output: str) -> str:
@@ -65,7 +64,7 @@ def generate_code(file: Filename, lang: Lang) -> None:
     console = Console()
     with open(file, 'r') as f:
         html_content = f.read()
-    md = make_problem_markdown(html_content, 'en')
+    md = ProblemHTML(html_content).make_problem_markdown('en')
 
     if set_api_key() is None:
         return
@@ -96,7 +95,7 @@ def generate_template(file: Filename, lang: Lang) -> None:
     console = Console()
     with open(file, 'r') as f:
         html_content = f.read()
-    md = make_problem_markdown(html_content, 'en')
+    md = ProblemHTML(html_content).make_problem_markdown('en')
 
     if set_api_key() is None:
         return
@@ -131,9 +130,10 @@ You must not solve the problem. Please faithfully reproduce the variable names d
 def solve_problem(file: Filename, lang: Lang) -> None:
     console = Console()
     with open(file, 'r') as f:
-        html_content = f.read()
-    md = make_problem_markdown(html_content, 'en')
-    labeled_cases = create_testcases_from_html(html_content)
+        html = ProblemHTML(f.read())
+
+    md = html.make_problem_markdown('en')
+    labeled_cases = html.load_labeled_testcase()
 
     if set_api_key() is None:
         return
