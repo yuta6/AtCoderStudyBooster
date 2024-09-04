@@ -1,8 +1,8 @@
 import requests
-from bs4 import BeautifulSoup as bs
 from rich.console import Console
 from rich.prompt import Prompt
 
+from atcdr.util.parse import get_csrf_token
 from atcdr.util.session import load_session, save_session, validate_session
 
 
@@ -22,13 +22,10 @@ def login() -> None:
     session = requests.Session()
     response = session.get(ATCODER_LOGIN_URL)
 
-    soup = bs(response.text, 'html.parser')
-    csrf_token = soup.find('input', {'name': 'csrf_token'})['value']
-
     login_data = {
         'username': username,  # ユーザー名を入力
         'password': password,  # パスワードを入力
-        'csrf_token': csrf_token,  # 取得したCSRFトークンを使用
+        'csrf_token': get_csrf_token(response.text),  # 取得したCSRFトークンを使用
     }
 
     with console.status('ログイン中'):

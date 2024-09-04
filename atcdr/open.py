@@ -4,7 +4,7 @@ from rich.console import Console
 
 from atcdr.util.filetype import Lang
 from atcdr.util.execute import execute_files
-from atcdr.util.problem import find_link_from_html
+from atcdr.util.parse import find_link_from_html
 
 
 def open_html(file: str) -> None:
