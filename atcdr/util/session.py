@@ -1,15 +1,15 @@
 import json
 import os
-import re
 from urllib.parse import unquote
 
 import requests
-from bs4 import BeautifulSoup as bs
 from rich import print
 from rich.align import Align
 from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.table import Table
+
+from atcdr.util.parse import get_username_from_html
 
 COOKIE_PATH = os.path.join(os.path.expanduser('~'), '.cache', 'atcder', 'session.json')
 
@@ -107,23 +107,6 @@ def validate_session(session: requests.Session) -> bool:
     except requests.RequestException as e:
         print(f'[red][-][/] セッションチェック中にエラーが発生しました: {e}')
         return False
-
-
-def get_username_from_html(html: str) -> str:
-    soup = bs(html, 'html.parser')
-    script_tags = soup.find_all('script')
-
-    user_screen_name = ''
-    for script in script_tags:
-        # <script>タグに内容がある場合のみ処理を行う
-        if script.string:
-            # 正規表現でuserScreenNameの値を抽出
-            match = re.search(r'userScreenName\s*=\s*"([^"]+)"', script.string)
-            if match:
-                user_screen_name = match.group(1)
-                break  # 見つかったらループを抜ける
-
-    return user_screen_name
 
 
 def delete_session() -> None:
