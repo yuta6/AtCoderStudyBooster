@@ -70,10 +70,50 @@ class TestInformation:
     lang: Lang
     sourcename: str
     case_number: int
-    result_summary: ResultStatus = ResultStatus.WJ
-    resultlist: List[LabeledTestCaseResult] = field(default_factory=list)  # 修正
+    results: List[ResultStatus] = field(default_factory=list)
     compiler_message: str = ''
     compile_time: Optional[int] = None
+
+    @property
+    def results_summary(self) -> ResultStatus:
+        priority_order = [
+            ResultStatus.CE,
+            ResultStatus.RE,
+            ResultStatus.WA,
+            ResultStatus.TLE,
+            ResultStatus.MLE,
+            ResultStatus.AC,
+        ]
+        priority_dict = {
+            status: index + 1 for index, status in enumerate(priority_order)
+        }
+        summary = min(
+            self.results,
+            key=lambda status: priority_dict[status],
+            default=ResultStatus.WJ,
+        )
+
+        if len(self.results) == self.case_number:
+            return summary
+
+        return ResultStatus.WJ if summary == ResultStatus.AC else summary
+
+    def update(
+        self, updator: Union[TestCaseResult, LabeledTestCaseResult, ResultStatus]
+    ) -> None:
+        match updator:
+            case TestCaseResult():
+                self.results.append(updator.passed)
+            case LabeledTestCaseResult():
+                self.results.append(updator.result.passed)
+            case ResultStatus():
+                self.results.append(updator)
+
+    def __iadd__(
+        self, other: Union[TestCaseResult, LabeledTestCaseResult, ResultStatus]
+    ) -> 'TestInformation':
+        self.update(other)
+        return self
 
 
 def run_code(cmd: list, case: TestCase) -> TestCaseResult:
@@ -166,8 +206,9 @@ def judge_code_from(
                 lang=lang,
                 sourcename=path,
                 case_number=len(lcases),
-                result_summary=ResultStatus.CE,
+                results=[ResultStatus.CE],
                 compiler_message=compile_result.stderr,
+                compile_time=compile_time,
             )
             return
         else:
@@ -175,6 +216,7 @@ def judge_code_from(
                 lang=lang,
                 sourcename=path,
                 case_number=len(lcases),
+                results=[],
                 compiler_message=compile_result.stderr,
                 compile_time=compile_time,
             )
@@ -194,9 +236,7 @@ def judge_code_from(
 
     elif lang in INTERPRETED_LANGUAGES:
         yield TestInformation(
-            lang=lang,
-            sourcename=path,
-            case_number=len(lcases),
+            lang=lang, sourcename=path, case_number=len(lcases), results=[]
         )
         cmd = [arg.format(source_path=path) for arg in LANGUAGE_RUN_COMMANDS[lang]]
         for lcase in lcases:
@@ -251,13 +291,11 @@ def create_renderable_test_info(
 ) -> RenderableType:
     components = []
 
-    success_count = sum(
-        1 for result in test_info.resultlist if result.result.passed == ResultStatus.AC
-    )
+    success_count = sum(1 for result in test_info.results if result == ResultStatus.AC)
     total_count = test_info.case_number
 
     # 結果に応じたスタイル付きのテキストを取得
-    status_text = STATUS_TEXT_MAP[test_info.result_summary]
+    status_text = STATUS_TEXT_MAP[test_info.results_summary]
 
     # ヘッダーのテキストを構築
     header_text = Text.assemble(
@@ -269,7 +307,7 @@ def create_renderable_test_info(
         else Text(''),
         status_text,
         Text.from_markup(
-            f'  [{COLOR_MAP[test_info.result_summary]} bold]{success_count}[/] / [white bold]{total_count}[/]'
+            f'  [{COLOR_MAP[test_info.results_summary]} bold]{success_count}[/] / [white bold]{total_count}[/]'
         ),
     )
 
@@ -287,40 +325,6 @@ def create_renderable_test_info(
         components.append(error_message)
 
     return Group(*components)
-
-
-def update_test_info(
-    test_info: TestInformation, test_result: LabeledTestCaseResult
-) -> TestInformation:
-    test_info.resultlist.append(test_result)
-
-    priority_order = [
-        ResultStatus.RE,
-        ResultStatus.WA,
-        ResultStatus.TLE,
-        ResultStatus.MLE,
-        ResultStatus.WJ,
-        ResultStatus.AC,
-    ]
-
-    # 現在の結果の中で最も高い優先順位のステータスを見つける
-    highest_priority_status = (
-        test_info.result_summary
-    )  # デフォルトはWJまたは現在のサマリー
-    for result in test_info.resultlist:
-        status = result.result.passed
-        if priority_order.index(status) < priority_order.index(highest_priority_status):
-            highest_priority_status = status
-
-    # 特殊ケース: すべてのテストケースがACである場合（途中でも）
-    if len(test_info.resultlist) == test_info.case_number and all(
-        result.result.passed == ResultStatus.AC for result in test_info.resultlist
-    ):
-        test_info.result_summary = ResultStatus.AC
-    else:
-        test_info.result_summary = highest_priority_status
-
-    return test_info
 
 
 def create_renderable_test_result(
@@ -381,7 +385,6 @@ def create_renderable_test_result(
 def render_results(
     results: Generator[Union[LabeledTestCaseResult, TestInformation], None, None],
 ) -> None:
-    # 最初の結果は TestInformation として取得
     first_result = next(results)
     if not isinstance(first_result, TestInformation):
         raise ValueError('最初のジェネレーターの結果はTestInformationです')
@@ -402,7 +405,7 @@ def render_results(
         for i, result in enumerate(results):
             if isinstance(result, LabeledTestCaseResult):
                 progress.advance(task_id, advance=1)
-                test_info = update_test_info(test_info, result)
+                test_info.update(result)
                 current_display[-1] = create_renderable_test_info(test_info, progress)
                 current_display.insert(-1, (create_renderable_test_result(i, result)))
                 live.update(Group(*current_display))
