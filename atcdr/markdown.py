@@ -5,14 +5,14 @@ from rich.markdown import Markdown
 
 from atcdr.util.execute import execute_files
 from atcdr.util.filetype import FILE_EXTENSIONS, Lang
-from atcdr.util.parse import make_problem_markdown
+from atcdr.util.parse import ProblemHTML
 
 
 def save_markdown(html_path: str, lang: str) -> None:
     console = Console()
     with open(html_path, 'r', encoding='utf-8') as f:
-        html = f.read()
-    md = make_problem_markdown(html, lang)
+        html = ProblemHTML(f.read())
+    md = html.make_problem_markdown(lang)
     file_without_ext = os.path.splitext(html_path)[0]
     md_path = file_without_ext + FILE_EXTENSIONS[Lang.MARKDOWN]
 

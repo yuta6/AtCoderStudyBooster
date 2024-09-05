@@ -4,7 +4,7 @@ from rich.console import Console
 
 from atcdr.util.filetype import Lang
 from atcdr.util.execute import execute_files
-from atcdr.util.parse import find_link_from_html
+from atcdr.util.parse import ProblemHTML
 
 
 def open_html(file: str) -> None:
@@ -21,7 +21,7 @@ def open_html(file: str) -> None:
         )
         return
 
-    url = find_link_from_html(html_content)
+    url = ProblemHTML(html_content).link
     if url:
         webbrowser.open_new_tab(url)
         console.print(
