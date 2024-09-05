@@ -141,6 +141,7 @@ class TestRunner:
                 for arg in LANGUAGE_RUN_COMMANDS[lang]
             ]
             self.exe = exe_path
+            run_code(self.cmd, TestCase(input='', output=''))  # バイナリーの慣らし運転
         elif lang in INTERPRETED_LANGUAGES:
             self.cmd = [
                 arg.format(source_path=self.source)
