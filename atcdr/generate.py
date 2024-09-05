@@ -1,17 +1,12 @@
 import json
 import os
 import re
-from typing import Generator, List, Union, cast
 
 from rich.console import Console
+from rich.panel import Panel
 from rich.syntax import Syntax
 
-from atcdr.test import (
-    LabeledTestCaseResult,
-    ResultStatus,
-    TestInformation,
-    judge_code_from,
-)
+from atcdr.test import ResultStatus, TestRunner, create_renderable_test_info
 from atcdr.util.execute import execute_files
 from atcdr.util.filetype import (
     FILE_EXTENSIONS,
@@ -31,32 +26,22 @@ def get_code_from_gpt_output(output: str) -> str:
 
 
 def render_result_for_GPT(
-    results: Generator[Union[TestInformation, LabeledTestCaseResult], None, None],
+    test: TestRunner,
 ) -> tuple[str, bool]:
-    first_result = next(results)
-    if not isinstance(first_result, TestInformation):
-        raise ValueError('最初のジェネレーターの結果はTestInformationです')
-    test_info: TestInformation = first_result
+    results = list(test)
 
-    if test_info.result_summary == ResultStatus.CE:
-        return f'Compile Error \n {test_info.compiler_message}', False
-    else:
-        results_list = cast(List[LabeledTestCaseResult], list(results))
-
-        if all(result.result.passed == ResultStatus.AC for result in results_list):
-            return 'ac', True
-        else:
-            message_for_gpt = ''
-            for result in results_list:
-                match result.result.passed:
-                    case ResultStatus.AC:
-                        message_for_gpt += f'\n{result.label} => Accepted\nInput :\n{result.testcase.input}\nOutput :\n{result.result.output}\n'
-                    case ResultStatus.RE:
-                        message_for_gpt += f'\n{result.label} => Runtime Error\nInput :\n{result.testcase.input}\nOutput :\n{result.result.output}\n'
-                    case ResultStatus.WA:
-                        message_for_gpt += f'\n{result.label} => Wrong Answer\nInput :\n{result.testcase.input}\nOutput :\n{result.result.output}\nExpected :\n{result.testcase.output}\n'
-                    case ResultStatus.TLE:
-                        message_for_gpt += f'\n{result.label} => Time Limit Exceeded\nInput :\n{result.testcase.input}\nOutput :\n{result.result.output}\n'
+    match test.info.results_summary:
+        case ResultStatus.AC:
+            return 'Accepted', True
+        case ResultStatus.CE:
+            return f'Compile Error \n {test.info.compiler_message}', False
+        case _:
+            message_for_gpt = ''.join(
+                f'\n{result.label} => {result.result.passed.value}\nInput :\n{result.testcase.input}\nOutput :\n{result.result.output}\nExpected :\n{result.testcase.output}\n'
+                if result.result.passed == ResultStatus.WA
+                else f'\n{result.label} => {result.result.passed.value}\nInput :\n{result.testcase.input}\nOutput :\n{result.result.output}\n'
+                for result in results
+            )
             return message_for_gpt, False
 
 
@@ -153,8 +138,9 @@ def solve_problem(file: Filename, lang: Lang) -> None:
                 {test_report}
 Please provide an updated version of the code in {lang2str(lang)}."""
                 console.print(
-                    f'[green][+][/] 次のプロンプトを{gpt.model.value}に与え,再生成します\n{prompt}'
+                    f'[green][+][/] 次のプロンプトを{gpt.model.value}に与え,再生成します'
                 )
+                console.print(Panel(prompt))
                 reply = gpt.tell(prompt)
 
         code = get_code_from_gpt_output(reply)
@@ -172,8 +158,10 @@ Please provide an updated version of the code in {lang2str(lang)}."""
         with console.status(
             f'{gpt.model.value}が生成したコードをテスト中', spinner='circleHalves'
         ):
-            test_results = judge_code_from(labeled_cases, saved_filename)
-            test_report, is_ac = render_result_for_GPT(test_results)
+            test = TestRunner(saved_filename, labeled_cases)
+            test_report, is_ac = render_result_for_GPT(test)
+
+        console.print(create_renderable_test_info(test.info))
 
         if is_ac:
             console.print('[green][+][/] コードのテストに成功!')

@@ -1,6 +1,6 @@
 import os
 from enum import Enum
-from typing import Dict, List, Optional, TypeAlias
+from typing import Dict, List, TypeAlias
 
 # ファイル名と拡張子の型エイリアスを定義
 Filename: TypeAlias = str
@@ -97,9 +97,9 @@ def lang2str(lang: Lang) -> str:
     return lang.value
 
 
-def detect_language(path: str) -> Optional[Lang]:
+def detect_language(path: str) -> Lang:
     ext = os.path.splitext(path)[1]  # ファイルの拡張子を取得
     lang = next(
-        (lang for lang, extension in FILE_EXTENSIONS.items() if extension == ext), None
+        (lang for lang, extension in FILE_EXTENSIONS.items() if extension == ext)
     )
     return lang
