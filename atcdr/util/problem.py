@@ -2,7 +2,7 @@ from typing import List, Optional
 
 import requests
 
-from atcdr.util.parse import get_problem_url_from_tasks
+from atcdr.util.parse import get_problem_urls_from_tasks
 
 
 class Contest:
@@ -43,7 +43,7 @@ class Contest:
 
         return [
             Problem(self, label=label, url=url)
-            for label, url in get_problem_url_from_tasks(response.text)
+            for label, url in get_problem_urls_from_tasks(response.text)
         ]
 
 

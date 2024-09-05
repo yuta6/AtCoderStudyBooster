@@ -8,12 +8,7 @@ from rich import print
 from rich.prompt import Prompt
 
 from atcdr.util.filetype import FILE_EXTENSIONS, Lang
-from atcdr.util.parse import (
-    get_title_from_html,
-    make_problem_markdown,
-    repair_html,
-    title_to_filename,
-)
+from atcdr.util.parse import ProblemHTML
 from atcdr.util.problem import Contest, Diff, Problem
 from atcdr.util.session import load_session
 
@@ -22,7 +17,7 @@ class Downloader:
     def __init__(self) -> None:
         self.session = load_session()
 
-    def get(self, problem: Problem) -> str:
+    def get(self, problem: Problem) -> ProblemHTML:
         session = self.session
         retry_attempts = 3
         retry_wait = 1  # 1 second
@@ -30,7 +25,7 @@ class Downloader:
         for _ in range(retry_attempts):
             response = session.get(problem.url)
             if response.status_code == 200:
-                return response.text
+                return ProblemHTML(response.text)
             elif response.status_code == 429:
                 print(
                     f'[bold yellow][Error {response.status_code}][/bold yellow] 再試行します。{problem}'
@@ -55,13 +50,7 @@ class Downloader:
                     f'[bold red][Error {response.status_code}][/bold red] {problem}に対応するHTMLファイルを取得できませんでした。'
                 )
                 break
-        return ''
-
-
-def save_file(file_path: str, html: str) -> None:
-    with open(file_path, 'w', encoding='utf-8') as file:
-        file.write(html)
-    print(f'[bold green][+][/bold green] ファイルを保存しました :{file_path}')
+        return ProblemHTML('')
 
 
 def mkdir(path: str) -> None:
@@ -88,32 +77,38 @@ class GenerateMode:
         )
 
 
+def title_to_filename(title: str) -> str:
+    title = re.sub(r'[\\/*?:"<>| !@#$%^&()+=\[\]{};,\']', '', title)
+    title = re.sub(r'.*?-', '', title)
+    return title
+
+
 def generate_problem_directory(
     base_path: str, problems: List[Problem], gene_path: Callable[[str, Problem], str]
 ) -> None:
     downloader = Downloader()
     for problem in problems:
         dir_path = gene_path(base_path, problem)
+        mkdir(dir_path)
+        problem_content = downloader.get(problem)
+        if not problem_content:
+            print(f'[bold red][Error][/] {problem}の保存に失敗しました')
+            return
+        problem_content.repair_me()
 
-        html = downloader.get(problem)
-        if not html:
-            continue
-
-        title = get_title_from_html(html)
-        if not title:
-            print('[bold red][Error][/bold red] タイトルが取得できませんでした')
-            title = f'{problem}'
-
+        title = problem_content.title or problem.label
         title = title_to_filename(title)
 
-        mkdir(dir_path)
-        repaired_html = repair_html(html)
-
         html_path = os.path.join(dir_path, title + FILE_EXTENSIONS[Lang.HTML])
-        save_file(html_path, repaired_html)
-        md = make_problem_markdown(html, 'ja')
+        with open(html_path, 'w', encoding='utf-8') as file:
+            file.write(problem_content.html)
+        print(f'[bold green][+][/bold green] ファイルを保存しました :{html_path}')
+
+        md = problem_content.make_problem_markdown('ja')
         md_path = os.path.join(dir_path, title + FILE_EXTENSIONS[Lang.MARKDOWN])
-        save_file(md_path, md)
+        with open(md_path, 'w', encoding='utf-8') as file:
+            file.write(md)
+        print(f'[bold green][+][/bold green] ファイルを保存しました :{md_path}')
 
 
 def parse_range(match: re.Match) -> List[int]:
