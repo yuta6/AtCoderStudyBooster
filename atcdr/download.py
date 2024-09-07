@@ -88,12 +88,14 @@ def generate_problem_directory(
 ) -> None:
     downloader = Downloader()
     for problem in problems:
-        dir_path = gene_path(base_path, problem)
-        mkdir(dir_path)
         problem_content = downloader.get(problem)
         if not problem_content:
             print(f'[bold red][Error][/] {problem}の保存に失敗しました')
             return
+
+        dir_path = gene_path(base_path, problem)
+        mkdir(dir_path)
+
         problem_content.repair_me()
 
         title = problem_content.title or problem.label
