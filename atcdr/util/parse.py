@@ -32,6 +32,9 @@ class HTML:
     def __str__(self) -> str:
         return self.html
 
+    def __bool__(self) -> bool:
+        return bool(self.html)
+
 
 class CustomMarkdownConverter(MarkdownConverter):
     def convert_var(self, el, text, convert_as_inline):
