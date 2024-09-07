@@ -91,7 +91,7 @@ def generate_problem_directory(
         problem_content = downloader.get(problem)
         if not problem_content:
             print(f'[bold red][Error][/] {problem}の保存に失敗しました')
-            return
+            continue
 
         dir_path = gene_path(base_path, problem)
         mkdir(dir_path)
