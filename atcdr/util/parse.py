@@ -1,5 +1,5 @@
 import re
-from typing import List, Optional
+from typing import Dict, Iterator, List, Optional
 
 from bs4 import BeautifulSoup as bs
 from bs4 import Tag
@@ -120,6 +120,29 @@ class ProblemHTML(HTML):
             )
 
         return ltest_cases
+
+    def find_submit_link_from_form(self) -> str:
+        form = self.soup.find('form', class_='form-code-submit')
+        action = form['action']
+        submit_url = f'https://atcoder.jp{action}'
+        return submit_url
+
+    def find_task_screen_name_from_form(self) -> str:
+        form = self.soup.find('form', class_='form-code-submit')
+        task_input = form.find('input', {'name': 'data.TaskScreenName'})
+        task_screen_name = task_input['value']
+        return task_screen_name
+
+    def get_languages_dict_from_form(self) -> Dict[str, int]:
+        form = self.soup.find('form', class_='form-code-submit')
+        options: Iterator[Tag] = form.find_all('option')
+
+        options = filter(
+            lambda option: 'value' in option.attrs and option['value'].isdigit(),
+            options,
+        )
+
+        return {option.text.strip(): int(option['value']) for option in options}
 
 
 def get_username_from_html(html: str) -> str:
