@@ -1,13 +1,17 @@
 import os
 from dataclasses import dataclass
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import questionary as q
 import requests
 from rich import print
 
 from atcdr.login import login
-from atcdr.test import ResultStatus, TestRunner, create_renderable_test_info
+from atcdr.test import (
+    ResultStatus,
+    TestRunner,
+    create_renderable_test_info,
+)
 from atcdr.util.execute import execute_files
 from atcdr.util.filetype import (
     COMPILED_LANGUAGES,
@@ -17,8 +21,8 @@ from atcdr.util.filetype import (
     lang2str,
     str2lang,
 )
-from atcdr.util.parse import ProblemHTML, get_csrf_token
-from atcdr.util.session import load_session, validate_session
+from atcdr.util.parse import ProblemHTML, get_csrf_token, get_submission_id
+from atcdr.util.session import load_session, print_rich_response, validate_session
 
 
 @dataclass
@@ -72,9 +76,7 @@ def choose_langid_interactively(lang_dict: dict, lang: Lang) -> int:
     return langid
 
 
-def post_source(
-    source_path: str, url: str, session: requests.Session
-) -> requests.Response:
+def post_source(source_path: str, url: str, session: requests.Session) -> Optional[int]:
     with open(source_path, 'r') as file:
         source = file.read()
 
@@ -98,10 +100,30 @@ def post_source(
 
     response = session.post(submit_url, data=post_data)
     if response.status_code != 200:
-        print(f'[red][Error{response.status_code}][/] 提出に失敗しました.')
-        print(response.text)
+        print(
+            f'[red][Error{response.status_code}][/] サーバーエラーの関係で提出に失敗しました.'
+        )
+        return None
 
-    return response
+    if response.url == submit_url:  # リダイレクトが発生してないから提出失敗
+        print(
+            f'[red][Error{response.status_code}][/] 提出しましたが,受理されませんでした.'
+        )
+        return None
+
+    submission_id = get_submission_id(response.text)
+    print(f'[green][+][/green] 提出に成功しました！提出ID: {submission_id}')
+
+    api_url_of_submission = response.url.replace('/me', f'/{submission_id}/status/json')
+    print(api_url_of_submission)
+
+    for _ in range(30):
+        print_rich_response(session.get(api_url_of_submission))
+        import time
+
+        time.sleep(2)
+
+    return submission_id
 
 
 def submit_source(path: str) -> None:
@@ -134,7 +156,8 @@ def submit_source(path: str) -> None:
         print('[red][-][/] サンプルケースが AC していないので提出できません')
         return
 
-    post_source(path, url, session)
+    submission_id = post_source(path, url, session)
+    print(f'{submission_id}')
 
 
 def submit(*args: str) -> None:
