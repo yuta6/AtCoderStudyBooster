@@ -16,7 +16,7 @@ class HTML:
         title_tag = self.soup.title
         return title_tag.string.strip() if title_tag else ''
 
-    def _find_link(self) -> Optional[str]:
+    def _find_link(self) -> str:
         meta_tag = self.soup.find('meta', property='og:url')
         if isinstance(meta_tag, Tag) and 'content' in meta_tag.attrs:
             content = meta_tag['content']

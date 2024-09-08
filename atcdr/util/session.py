@@ -14,6 +14,7 @@ from atcdr.util.parse import get_username_from_html
 COOKIE_PATH = os.path.join(os.path.expanduser('~'), '.cache', 'atcder', 'session.json')
 
 
+# デバック用のレスポンス解析用関数
 def print_rich_response(
     response: requests.Response, body_range: tuple = (0, 24)
 ) -> None:

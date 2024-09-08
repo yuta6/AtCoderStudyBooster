@@ -3,18 +3,21 @@ from rich.console import Console
 from rich.prompt import Prompt
 
 from atcdr.util.parse import get_csrf_token
-from atcdr.util.session import load_session, save_session, validate_session
+from atcdr.util.session import (
+    load_session,
+    save_session,
+    validate_session,
+)
 
 
-def login() -> bool:
+def login() -> None:
     ATCODER_LOGIN_URL = 'https://atcoder.jp/login'
     ATCODER_HOME_URL = 'https://atcoder.jp/home'
-
     console = Console()
     session = load_session()
     if validate_session(session):
         console.print('[green][+][/] すでにログイン済みです.  ')
-        return True
+        return
 
     username = Prompt.ask('[cyan]ユーザー名を入力してください[/]', console=console)
     password = Prompt.ask('[cyan]パスワードを入力してください[/]', console=console)
@@ -35,7 +38,5 @@ def login() -> bool:
     if login_response.url == ATCODER_HOME_URL and login_response.status_code == 200:
         console.print('[green][+][/] ログインに成功しました.  ')
         save_session(session)
-        return True
     else:
         console.print('[red][-][/] ログインに失敗しました.  ')
-        return False
