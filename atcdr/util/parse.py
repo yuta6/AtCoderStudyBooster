@@ -196,3 +196,11 @@ def get_problem_urls_from_tasks(html_content: str) -> list[tuple[str, str]]:
             links.append((label, link))
 
     return links
+
+
+def get_submission_id(html_content: str) -> Optional[int]:
+    soup = bs(html_content, 'html.parser')
+    first_tr = soup.select_one('tbody > tr')
+    data_id_td = first_tr.find(lambda tag: tag.has_attr('data-id'))
+    data_id = int(data_id_td['data-id']) if data_id_td else None
+    return data_id
