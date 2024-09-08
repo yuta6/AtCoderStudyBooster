@@ -35,6 +35,21 @@ def print_rich_response(
         header_table.add_row(key, value)
     header_table = Align.center(header_table)
 
+    # リダイレクトの歴史
+    redirect_table = None
+    if response.history:
+        redirect_table = Table(title='リダイレクト履歴')
+        redirect_table.add_column('ステップ', style='cyan')
+        redirect_table.add_column('ステータスコード', style='magenta')
+        redirect_table.add_column('URL', style='green')
+        for i, redirect_response in enumerate(response.history):
+            redirect_table.add_row(
+                f'Redirect {i}',
+                str(redirect_response.status_code),
+                redirect_response.url,
+            )
+        redirect_table = Align.center(redirect_table)
+
     # レスポンスボディの表示
     content_type = response.headers.get('Content-Type', '').lower()
     if 'application/json' in content_type:
@@ -60,6 +75,8 @@ def print_rich_response(
 
     print(info_table)
     print(header_table)
+    if redirect_table:
+        print(redirect_table)
     if body:
         print(body_panel)
 

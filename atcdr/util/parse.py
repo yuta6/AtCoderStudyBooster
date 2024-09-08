@@ -133,7 +133,7 @@ class ProblemHTML(HTML):
         task_screen_name = task_input['value']
         return task_screen_name
 
-    def get_languages_dict_from_form(self) -> Dict[str, int]:
+    def get_languages_options_from_form(self) -> Dict[str, int]:
         form = self.soup.find('form', class_='form-code-submit')
         options: Iterator[Tag] = form.find_all('option')
 
