@@ -80,9 +80,9 @@ def post_source(
 
     problem = ProblemHTML(session.get(url).text)
 
-    task_screen_name = problem.find_task_screen_name_from_form()
-    submit_url = problem.find_submit_link_from_form()
-    lang_dict = problem.get_languages_options_from_form()
+    task_screen_name = problem.form.find_task_screen_name()
+    submit_url = problem.form.find_submit_link()
+    lang_dict = problem.form.get_languages_options()
 
     csrf_token = get_csrf_token(problem.html)
 

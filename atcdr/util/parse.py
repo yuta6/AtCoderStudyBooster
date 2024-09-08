@@ -46,6 +46,27 @@ class CustomMarkdownConverter(MarkdownConverter):
         return f'```\n{pre_text}\n```'
 
 
+class ProblemForm(Tag):
+    def find_submit_link(self) -> str:
+        action = self['action']
+        submit_url = f'https://atcoder.jp{action}'
+        return submit_url
+
+    def find_task_screen_name(self) -> str:
+        task_input = self.find('input', {'name': 'data.TaskScreenName'})
+        task_screen_name = task_input['value']
+        return task_screen_name
+
+    def get_languages_options(self) -> Dict[str, int]:
+        options: Iterator[Tag] = self.find_all('option')
+
+        options = filter(
+            lambda option: 'value' in option.attrs and option['value'].isdigit(),
+            options,
+        )
+        return {option.text.strip(): int(option['value']) for option in options}
+
+
 class ProblemHTML(HTML):
     def repair_me(self) -> None:
         html = self.html.replace('//img.atcoder.jp', 'https://img.atcoder.jp')
@@ -121,28 +142,13 @@ class ProblemHTML(HTML):
 
         return ltest_cases
 
-    def find_submit_link_from_form(self) -> str:
+    @property
+    def form(self) -> ProblemForm:
         form = self.soup.find('form', class_='form-code-submit')
-        action = form['action']
-        submit_url = f'https://atcoder.jp{action}'
-        return submit_url
-
-    def find_task_screen_name_from_form(self) -> str:
-        form = self.soup.find('form', class_='form-code-submit')
-        task_input = form.find('input', {'name': 'data.TaskScreenName'})
-        task_screen_name = task_input['value']
-        return task_screen_name
-
-    def get_languages_options_from_form(self) -> Dict[str, int]:
-        form = self.soup.find('form', class_='form-code-submit')
-        options: Iterator[Tag] = form.find_all('option')
-
-        options = filter(
-            lambda option: 'value' in option.attrs and option['value'].isdigit(),
-            options,
-        )
-
-        return {option.text.strip(): int(option['value']) for option in options}
+        if not isinstance(form, Tag):
+            raise ValueError('問題ページにフォームが存在しません')
+        form.__class__ = ProblemForm
+        return form
 
 
 def get_username_from_html(html: str) -> str:
