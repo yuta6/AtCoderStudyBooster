@@ -7,7 +7,7 @@ import requests
 from rich import print
 
 from atcdr.login import login
-from atcdr.test import ResultStatus, TestRunner, render_results
+from atcdr.test import ResultStatus, TestRunner, create_renderable_test_info
 from atcdr.util.execute import execute_files
 from atcdr.util.filetype import (
     COMPILED_LANGUAGES,
@@ -125,11 +125,13 @@ def submit_source(path: str) -> None:
 
     lcases = problem.load_labeled_testcase()
     url = problem.link
+
     test = TestRunner(path, lcases)
-    render_results(test)
+    list(test)
+    print(create_renderable_test_info(test.info))
 
     if test.info.results_summary != ResultStatus.AC:
-        print('[red][-][/]サンプルケースが AC していないので提出できません')
+        print('[red][-][/] サンプルケースが AC していないので提出できません')
         return
 
     post_source(path, url, session)
