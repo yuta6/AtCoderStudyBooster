@@ -56,7 +56,14 @@ def print_rich_response(
     if 'application/json' in content_type:
         # JSONの整形表示
         try:
-            body = Syntax(response.json(), 'json', theme='monokai', line_numbers=True)
+            body = Syntax(
+                json.dumps(response.json(), indent=4),
+                'json',
+                theme='monokai',
+                line_numbers=True,
+                line_range=body_range,
+                word_wrap=True,
+            )
         except Exception:
             pass
     else:
@@ -68,6 +75,7 @@ def print_rich_response(
                 theme='monokai',
                 line_numbers=True,
                 line_range=body_range,
+                word_wrap=True,
             )
             if response.text
             else None
