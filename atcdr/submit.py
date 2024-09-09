@@ -117,9 +117,11 @@ def post_source(source_path: str, url: str, session: requests.Session) -> Option
         return None
 
     submission_id = get_submission_id(response.text)
-    print(f'[green][+][/green] 提出に成功しました！提出ID: {submission_id}')
+    print('[green][+][/green] 提出に成功しました！')
+    url = response.url.replace('/me', f'/{submission_id}')
+    print(f'提出ID: {submission_id}, URL: {url}')
 
-    return response.url.replace('/me', f'/{submission_id}/status/json')
+    return url + '/status/json'
 
 
 class SubmissionStatus(NamedTuple):
