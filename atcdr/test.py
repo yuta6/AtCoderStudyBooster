@@ -73,30 +73,39 @@ class TestInformation:
     results: List[ResultStatus] = field(default_factory=list)
     compiler_message: str = ''
     compile_time: Optional[int] = None
+    _summary: Optional[ResultStatus] = None
 
     @property
-    def results_summary(self) -> ResultStatus:
-        priority_order = [
-            ResultStatus.CE,
-            ResultStatus.RE,
-            ResultStatus.WA,
-            ResultStatus.TLE,
-            ResultStatus.MLE,
-            ResultStatus.AC,
-        ]
-        priority_dict = {
-            status: index + 1 for index, status in enumerate(priority_order)
-        }
-        summary = min(
-            self.results,
-            key=lambda status: priority_dict[status],
-            default=ResultStatus.WJ,
-        )
+    def summary(self) -> ResultStatus:
+        if self._summary:
+            return self._summary
+        else:
+            priority_order = [
+                ResultStatus.CE,
+                ResultStatus.RE,
+                ResultStatus.WA,
+                ResultStatus.TLE,
+                ResultStatus.MLE,
+                ResultStatus.WJ,
+                ResultStatus.AC,
+            ]
+            priority_dict = {
+                status: index + 1 for index, status in enumerate(priority_order)
+            }
+            summary = min(
+                self.results,
+                key=lambda status: priority_dict[status],
+                default=ResultStatus.WJ,
+            )
 
-        if len(self.results) == self.case_number:
-            return summary
+            if len(self.results) == self.case_number:
+                return summary
 
-        return ResultStatus.WJ if summary == ResultStatus.AC else summary
+            return ResultStatus.WJ if summary == ResultStatus.AC else summary
+
+    @summary.setter
+    def summary(self, value: ResultStatus) -> None:
+        self._summary = value
 
     def update(
         self, updator: Union[TestCaseResult, LabeledTestCaseResult, ResultStatus]
@@ -287,7 +296,7 @@ def create_renderable_test_info(
     success_count = sum(1 for result in test_info.results if result == ResultStatus.AC)
     total_count = test_info.case_number
 
-    status_text = STATUS_TEXT_MAP[test_info.results_summary]
+    status_text = STATUS_TEXT_MAP[test_info.summary]
 
     header_text = Text.assemble(
         Text.from_markup(f'[cyan]{test_info.sourcename}[/]のテスト \n'),
@@ -298,7 +307,7 @@ def create_renderable_test_info(
         else Text(''),
         status_text,
         Text.from_markup(
-            f'  [{COLOR_MAP[test_info.results_summary]} bold]{success_count}[/] / [white bold]{total_count}[/]'
+            f'  [{COLOR_MAP[test_info.summary]} bold]{success_count}[/] / [white bold]{total_count}[/]'
         ),
     )
 

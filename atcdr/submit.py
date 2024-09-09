@@ -1,14 +1,20 @@
 import os
-from dataclasses import dataclass
-from typing import Dict, List, Optional
+import re
+import time
+from typing import Dict, List, NamedTuple, Optional
 
 import questionary as q
 import requests
+from bs4 import BeautifulSoup as bs
 from rich import print
+from rich.live import Live
+from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn
+from rich.status import Status
 
 from atcdr.login import login
 from atcdr.test import (
     ResultStatus,
+    TestInformation,
     TestRunner,
     create_renderable_test_info,
 )
@@ -22,11 +28,10 @@ from atcdr.util.filetype import (
     str2lang,
 )
 from atcdr.util.parse import ProblemHTML, get_csrf_token, get_submission_id
-from atcdr.util.session import load_session, print_rich_response, validate_session
+from atcdr.util.session import load_session, validate_session
 
 
-@dataclass
-class LanguageOption:
+class LanguageOption(NamedTuple):
     id: int
     display_name: str
     lang: Lang
@@ -76,7 +81,7 @@ def choose_langid_interactively(lang_dict: dict, lang: Lang) -> int:
     return langid
 
 
-def post_source(source_path: str, url: str, session: requests.Session) -> Optional[int]:
+def post_source(source_path: str, url: str, session: requests.Session) -> Optional[str]:
     with open(source_path, 'r') as file:
         source = file.read()
 
@@ -114,16 +119,102 @@ def post_source(source_path: str, url: str, session: requests.Session) -> Option
     submission_id = get_submission_id(response.text)
     print(f'[green][+][/green] 提出に成功しました！提出ID: {submission_id}')
 
-    api_url_of_submission = response.url.replace('/me', f'/{submission_id}/status/json')
-    print(api_url_of_submission)
+    return response.url.replace('/me', f'/{submission_id}/status/json')
 
-    for _ in range(30):
-        print_rich_response(session.get(api_url_of_submission))
-        import time
 
-        time.sleep(2)
+class SubmissionStatus(NamedTuple):
+    status: ResultStatus
+    current: Optional[int]
+    total: Optional[int]
+    is_finished: bool
 
-    return submission_id
+
+def parse_submission_status_json(data: Dict) -> SubmissionStatus:
+    html_content = data.get('Html', '')
+    interval = data.get('Interval', None)
+
+    soup = bs(html_content, 'html.parser')
+    span = soup.find('span', {'class': 'label'})
+    status_text = span.text.strip()
+
+    current, total = None, None
+    is_finished = interval is None
+
+    match = re.search(r'(\d+)/(\d+)', status_text)
+    if match:
+        current = int(match.group(1))
+        total = int(match.group(2))
+
+    status_mapping = {
+        'AC': ResultStatus.AC,
+        'WA': ResultStatus.WA,
+        'TLE': ResultStatus.TLE,
+        'MLE': ResultStatus.MLE,
+        'RE': ResultStatus.RE,
+        'CE': ResultStatus.CE,
+        'WJ': ResultStatus.WJ,
+    }
+    status = next(
+        (status_mapping[key] for key in status_mapping if key in status_text),
+        ResultStatus.WJ,
+    )
+
+    return SubmissionStatus(
+        status=status, current=current, total=total, is_finished=is_finished
+    )
+
+
+def print_status_submission(
+    api_url: str,
+    path: str,
+    session: requests.Session,
+) -> None:
+    progress = Progress(
+        SpinnerColumn(style='white', spinner_name='circleHalves'),
+        TextColumn('{task.description}'),
+        SpinnerColumn(style='white', spinner_name='simpleDots'),
+        BarColumn(),
+    )
+
+    with Status('ジャッジ待機中', spinner='dots'):
+        for _ in range(10):
+            time.sleep(1)
+            data = session.get(api_url).json()
+            status = parse_submission_status_json(data)
+            if status.total or status.current:
+                break
+        else:
+            print('[red][-][/]10秒待ってもジャッジが開始されませんでした')
+            return
+
+    total = status.total or 0
+    task_id = progress.add_task(description='ジャッジ中', total=total)
+
+    test_info = TestInformation(
+        lang=detect_language(path),
+        sourcename=path,
+        case_number=total,
+    )
+
+    with Live(create_renderable_test_info(test_info, progress)) as live:
+        current = 0
+        while not status.is_finished:
+            time.sleep(1)
+            data = session.get(api_url).json()
+            status = parse_submission_status_json(data)
+            current = status.current or current or 0
+
+            test_info.summary = status.status
+            test_info.results = [ResultStatus.AC] * current
+
+            progress.update(task_id, completed=current)
+            live.update(create_renderable_test_info(test_info, progress))
+
+        test_info.summary = status.status
+        test_info.results = [ResultStatus.AC] * total
+
+        progress.update(task_id, description='ジャッジ完了', completed=total)
+        live.update(create_renderable_test_info(test_info, progress))
 
 
 def submit_source(path: str) -> None:
@@ -152,12 +243,15 @@ def submit_source(path: str) -> None:
     list(test)
     print(create_renderable_test_info(test.info))
 
-    if test.info.results_summary != ResultStatus.AC:
+    if test.info.summary != ResultStatus.AC:
         print('[red][-][/] サンプルケースが AC していないので提出できません')
         return
 
-    submission_id = post_source(path, url, session)
-    print(f'{submission_id}')
+    api_status_link = post_source(path, url, session)
+    if api_status_link is None:
+        return
+
+    print_status_submission(api_status_link, path, session)
 
 
 def submit(*args: str) -> None:

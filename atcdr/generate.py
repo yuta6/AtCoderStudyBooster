@@ -30,7 +30,7 @@ def render_result_for_GPT(
 ) -> tuple[str, bool]:
     results = list(test)
 
-    match test.info.results_summary:
+    match test.info.summary:
         case ResultStatus.AC:
             return 'Accepted', True
         case ResultStatus.CE:
