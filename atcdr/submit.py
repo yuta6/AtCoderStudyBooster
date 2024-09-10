@@ -219,7 +219,7 @@ def print_status_submission(
         live.update(create_renderable_test_info(test_info, progress))
 
 
-def submit_source(path: str) -> None:
+def submit_source(path: str, no_test: bool, no_feedback: bool) -> None:
     session = load_session()
     if not validate_session(session):
         print('[red][-][/] ログインしていません.')
@@ -245,7 +245,7 @@ def submit_source(path: str) -> None:
     list(test)
     print(create_renderable_test_info(test.info))
 
-    if test.info.summary != ResultStatus.AC:
+    if test.info.summary != ResultStatus.AC and not no_test:
         print('[red][-][/] サンプルケースが AC していないので提出できません')
         return
 
@@ -253,12 +253,13 @@ def submit_source(path: str) -> None:
     if api_status_link is None:
         return
 
-    print_status_submission(api_status_link, path, session)
+    if not no_feedback:
+        print_status_submission(api_status_link, path, session)
 
 
-def submit(*args: str) -> None:
+def submit(*args: str, no_test: bool = False, no_feedback: bool = False) -> None:
     execute_files(
         *args,
-        func=submit_source,
+        func=lambda path: submit_source(path, no_test, no_feedback),
         target_filetypes=COMPILED_LANGUAGES + INTERPRETED_LANGUAGES,
     )
