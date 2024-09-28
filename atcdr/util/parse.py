@@ -1,5 +1,5 @@
 import re
-from typing import List, Optional
+from typing import Dict, Iterator, List, Optional
 
 from bs4 import BeautifulSoup as bs
 from bs4 import Tag
@@ -16,7 +16,7 @@ class HTML:
         title_tag = self.soup.title
         return title_tag.string.strip() if title_tag else ''
 
-    def _find_link(self) -> Optional[str]:
+    def _find_link(self) -> str:
         meta_tag = self.soup.find('meta', property='og:url')
         if isinstance(meta_tag, Tag) and 'content' in meta_tag.attrs:
             content = meta_tag['content']
@@ -44,6 +44,27 @@ class CustomMarkdownConverter(MarkdownConverter):
     def convert_pre(self, el, text, convert_as_inline):
         pre_text = el.text.strip()
         return f'```\n{pre_text}\n```'
+
+
+class ProblemForm(Tag):
+    def find_submit_link(self) -> str:
+        action = self['action']
+        submit_url = f'https://atcoder.jp{action}'
+        return submit_url
+
+    def find_task_screen_name(self) -> str:
+        task_input = self.find('input', {'name': 'data.TaskScreenName'})
+        task_screen_name = task_input['value']
+        return task_screen_name
+
+    def get_languages_options(self) -> Dict[str, int]:
+        options: Iterator[Tag] = self.find_all('option')
+
+        options = filter(
+            lambda option: 'value' in option.attrs and option['value'].isdigit(),
+            options,
+        )
+        return {option.text.strip(): int(option['value']) for option in options}
 
 
 class ProblemHTML(HTML):
@@ -121,6 +142,14 @@ class ProblemHTML(HTML):
 
         return ltest_cases
 
+    @property
+    def form(self) -> ProblemForm:
+        form = self.soup.find('form', class_='form-code-submit')
+        if not isinstance(form, Tag):
+            raise ValueError('問題ページにフォームが存在しません')
+        form.__class__ = ProblemForm
+        return form
+
 
 def get_username_from_html(html: str) -> str:
     soup = bs(html, 'html.parser')
@@ -167,3 +196,11 @@ def get_problem_urls_from_tasks(html_content: str) -> list[tuple[str, str]]:
             links.append((label, link))
 
     return links
+
+
+def get_submission_id(html_content: str) -> Optional[int]:
+    soup = bs(html_content, 'html.parser')
+    first_tr = soup.select_one('tbody > tr')
+    data_id_td = first_tr.find(lambda tag: tag.has_attr('data-id'))
+    data_id = int(data_id_td['data-id']) if data_id_td else None
+    return data_id

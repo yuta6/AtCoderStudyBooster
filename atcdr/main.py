@@ -9,6 +9,7 @@ from atcdr.login import login
 from atcdr.logout import logout
 from atcdr.markdown import markdown
 from atcdr.open import open_files
+from atcdr.submit import submit
 from atcdr.test import test
 
 
@@ -30,6 +31,8 @@ MAP_COMMANDS: dict = {
     'md': markdown,
     'login': login,
     'logout': logout,
+    'submit': submit,
+    's': submit,
     '--version': get_version,
     '-v': get_version,
 }

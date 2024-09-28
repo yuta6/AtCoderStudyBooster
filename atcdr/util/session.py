@@ -14,6 +14,7 @@ from atcdr.util.parse import get_username_from_html
 COOKIE_PATH = os.path.join(os.path.expanduser('~'), '.cache', 'atcder', 'session.json')
 
 
+# デバック用のレスポンス解析用関数
 def print_rich_response(
     response: requests.Response, body_range: tuple = (0, 24)
 ) -> None:
@@ -35,12 +36,34 @@ def print_rich_response(
         header_table.add_row(key, value)
     header_table = Align.center(header_table)
 
+    # リダイレクトの歴史
+    redirect_table = None
+    if response.history:
+        redirect_table = Table(title='リダイレクト履歴')
+        redirect_table.add_column('ステップ', style='cyan')
+        redirect_table.add_column('ステータスコード', style='magenta')
+        redirect_table.add_column('URL', style='green')
+        for i, redirect_response in enumerate(response.history):
+            redirect_table.add_row(
+                f'Redirect {i}',
+                str(redirect_response.status_code),
+                redirect_response.url,
+            )
+        redirect_table = Align.center(redirect_table)
+
     # レスポンスボディの表示
     content_type = response.headers.get('Content-Type', '').lower()
     if 'application/json' in content_type:
         # JSONの整形表示
         try:
-            body = Syntax(response.json(), 'json', theme='monokai', line_numbers=True)
+            body = Syntax(
+                json.dumps(response.json(), indent=4),
+                'json',
+                theme='monokai',
+                line_numbers=True,
+                line_range=body_range,
+                word_wrap=True,
+            )
         except Exception:
             pass
     else:
@@ -52,6 +75,7 @@ def print_rich_response(
                 theme='monokai',
                 line_numbers=True,
                 line_range=body_range,
+                word_wrap=True,
             )
             if response.text
             else None
@@ -60,6 +84,8 @@ def print_rich_response(
 
     print(info_table)
     print(header_table)
+    if redirect_table:
+        print(redirect_table)
     if body:
         print(body_panel)
 

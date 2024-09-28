@@ -3,13 +3,16 @@ from rich.console import Console
 from rich.prompt import Prompt
 
 from atcdr.util.parse import get_csrf_token
-from atcdr.util.session import load_session, save_session, validate_session
+from atcdr.util.session import (
+    load_session,
+    save_session,
+    validate_session,
+)
 
 
 def login() -> None:
     ATCODER_LOGIN_URL = 'https://atcoder.jp/login'
     ATCODER_HOME_URL = 'https://atcoder.jp/home'
-
     console = Console()
     session = load_session()
     if validate_session(session):
