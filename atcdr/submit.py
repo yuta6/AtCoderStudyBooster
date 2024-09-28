@@ -179,14 +179,14 @@ def print_status_submission(
     )
 
     with Status('ジャッジ待機中', spinner='dots'):
-        for _ in range(10):
+        for _ in range(15):
             time.sleep(1)
             data = session.get(api_url).json()
             status = parse_submission_status_json(data)
             if status.total or status.current:
                 break
         else:
-            print('[red][-][/]10秒待ってもジャッジが開始されませんでした')
+            print('[red][-][/] 15秒待ってもジャッジが開始されませんでした')
             return
 
     total = status.total or 0
