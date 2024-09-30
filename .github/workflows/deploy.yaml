@@ -24,7 +24,7 @@ jobs:
       - name: Install Rye
         shell: bash
         run: |
-          curl -sSf https://rye.astral.sh/get | bash
+          curl -sSf https://rye.astral.sh/get | bash -s -- --no-interactive
           echo 'source "$HOME/.rye/env"' >> ~/.bashrc
           source ~/.bashrc
 
