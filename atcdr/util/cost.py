@@ -8,6 +8,8 @@ import yfinance as yf  # type: ignore
 class Model(Enum):
     GPT4O = 'gpt-4o'
     GPT4O_MINI = 'gpt-4o-mini'
+    O1_PREVIEW = 'o1-preview'
+    O1_MINI = 'o1-mini'
 
 
 class CostType(Enum):
@@ -83,10 +85,18 @@ class Currency:
 
 class Rate:
     _COST_RATES = {
-        Model.GPT4O: {CostType.INPUT: 5 / 1000**2, CostType.OUTPUT: 15 / 1000**2},
+        Model.GPT4O: {CostType.INPUT: 5.00 / 1000**2, CostType.OUTPUT: 15.00 / 1000**2},
         Model.GPT4O_MINI: {
             CostType.INPUT: 0.15 / 1000**2,
             CostType.OUTPUT: 0.60 / 1000**2,
+        },
+        Model.O1_PREVIEW: {
+            CostType.INPUT: 15.00 / 1000**2,
+            CostType.OUTPUT: 60.00 / 1000**2,
+        },
+        Model.O1_MINI: {
+            CostType.INPUT: 3.00 / 1000**2,
+            CostType.OUTPUT: 12.00 / 1000**2,
         },
     }
 

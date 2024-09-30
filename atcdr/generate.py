@@ -7,6 +7,7 @@ from rich.panel import Panel
 from rich.syntax import Syntax
 
 from atcdr.test import ResultStatus, TestRunner, create_renderable_test_info
+from atcdr.util.cost import Model
 from atcdr.util.execute import execute_files
 from atcdr.util.filetype import (
     FILE_EXTENSIONS,
@@ -45,7 +46,7 @@ def render_result_for_GPT(
             return message_for_gpt, False
 
 
-def generate_code(file: Filename, lang: Lang) -> None:
+def generate_code(file: Filename, lang: Lang, model: Model) -> None:
     console = Console()
     with open(file, 'r') as f:
         html_content = f.read()
@@ -55,6 +56,7 @@ def generate_code(file: Filename, lang: Lang) -> None:
         return
     gpt = ChatGPT(
         system_prompt=f"""You are an excellent programmer. You solve problems in competitive programming.When a user provides you with a problem from a programming contest called AtCoder, including the Problem,Constraints, Input, Output, Input Example, and Output Example, please carefully consider these and solve the problem.Make sure that your output code block contains no more than two blocks. Pay close attention to the Input, Input Example, Output, and Output Example.Create the solution in {lang2str(lang)}.""",
+        model=model,
     )
     with console.status(f'コード生成中 (by {gpt.model.value})'):
         reply = gpt.tell(md)
@@ -112,7 +114,7 @@ You must not solve the problem. Please faithfully reproduce the variable names d
     console.print(f'AI利用にかかったAPIコスト:{gpt.sum_cost}')
 
 
-def solve_problem(file: Filename, lang: Lang) -> None:
+def solve_problem(file: Filename, lang: Lang, model: Model) -> None:
     console = Console()
     with open(file, 'r') as f:
         html = ProblemHTML(f.read())
@@ -124,6 +126,7 @@ def solve_problem(file: Filename, lang: Lang) -> None:
         return
     gpt = ChatGPT(
         system_prompt=f"""You are a brilliant programmer. Your task is to solve an AtCoder problem. AtCoder is a platform that hosts programming competitions where participants write programs to solve algorithmic challenges.Please solve the problem in {lang2str(lang)}.""",
+        model=model,
     )
 
     file_without_ext = os.path.splitext(file)[0]
@@ -187,10 +190,12 @@ Please provide an updated version of the code in {lang2str(lang)}."""
 def generate(
     *source: str,
     lang: str = 'Python',
+    model: str = Model.GPT4O_MINI.value,
     without_test: bool = False,
     template: bool = False,
 ) -> None:
     la = str2lang(lang)
+    model_enum = Model(model)
 
     if template:
         execute_files(
@@ -201,12 +206,12 @@ def generate(
     elif without_test:
         execute_files(
             *source,
-            func=lambda file: generate_code(file, la),
+            func=lambda file: generate_code(file, la, model_enum),
             target_filetypes=[Lang.HTML],
         )
     else:
         execute_files(
             *source,
-            func=lambda file: solve_problem(file, la),
+            func=lambda file: solve_problem(file, la, model_enum),
             target_filetypes=[Lang.HTML],
         )
