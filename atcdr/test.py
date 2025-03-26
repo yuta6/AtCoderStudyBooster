@@ -236,7 +236,7 @@ LANGUAGE_COMPILE_COMMANDS: Dict[Lang, list] = {
 def run_compile(
     path: str, lang: Lang
 ) -> Tuple[str, subprocess.CompletedProcess, Optional[int]]:
-    with tempfile.NamedTemporaryFile(delete=True) as tmp:
+    with tempfile.NamedTemporaryFile(delete=False) as tmp:
         exec_path = tmp.name
     cmd = [
         arg.format(source_path=path, exec_path=exec_path)
@@ -404,6 +404,8 @@ def render_results(test: TestRunner) -> None:
             live.update(Group(*current_display))
 
         progress.update(task_id, description='テスト完了')  # 完了メッセージに更新
+        current_display[-1] = create_renderable_test_info(test.info, progress)
+        live.update(Group(*current_display))
 
 
 def run_test(path_of_code: str) -> None:
