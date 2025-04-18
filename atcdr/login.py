@@ -1,42 +1,103 @@
-import requests
-from rich.console import Console
-from rich.prompt import Prompt
+import threading
+import time
 
-from atcdr.util.parse import get_csrf_token
-from atcdr.util.session import (
-    load_session,
-    save_session,
-    validate_session,
-)
+import webview
+from requests import Session
+from rich.console import Console
+
+from atcdr.util.session import load_session, save_session, validate_session
+
+ATCODER_LOGIN_URL = 'https://atcoder.jp/login'
+ATCODER_HOME_URL = 'https://atcoder.jp/home'
+
+console = Console()
 
 
 def login() -> None:
-    ATCODER_LOGIN_URL = 'https://atcoder.jp/login'
-    ATCODER_HOME_URL = 'https://atcoder.jp/home'
-    console = Console()
     session = load_session()
     if validate_session(session):
-        console.print('[green][+][/] すでにログイン済みです.  ')
+        console.print('[green][+][/] すでにログインしています. ')
         return
 
-    username = Prompt.ask('[cyan]ユーザー名を入力してください[/]', console=console)
-    password = Prompt.ask('[cyan]パスワードを入力してください[/]', console=console)
+    # Prompt in CLI
+    username = console.input('[cyan]ユーザー名: [/]').strip()
+    password = console.input('[cyan]パスワード: [/]').strip()
 
-    session = requests.Session()
-    response = session.get(ATCODER_LOGIN_URL)
+    window = webview.create_window('AtCoder Login', ATCODER_LOGIN_URL, hidden=True)
 
-    login_data = {
-        'username': username,  # ユーザー名を入力
-        'password': password,  # パスワードを入力
-        'csrf_token': get_csrf_token(response.text),  # 取得したCSRFトークンを使用
-    }
+    def on_loaded():
+        js_fill = f"""
+        document.getElementById('username').value = '{username}';
+        document.getElementById('password').value = '{password}';
+        """
+        window.evaluate_js(js_fill)
 
-    with console.status('ログイン中'):
-        login_response = session.post(ATCODER_LOGIN_URL, data=login_data)
+        def poll_and_submit():
+            console.print('[green][+][/] Cloudflareの認証の待機中...')
+            while True:
+                try:
+                    token = window.evaluate_js(
+                        'document.querySelector(\'input[name=\\"cf-turnstile-response\\"]\').value'
+                    )
+                    if token:
+                        console.print('[green][+][/] ログインします')
+                        window.evaluate_js("document.getElementById('submit').click();")
+                        break
+                except Exception:
+                    pass
+                time.sleep(0.5)
 
-    # リクエスト後の最終URLを表示
-    if login_response.url == ATCODER_HOME_URL and login_response.status_code == 200:
-        console.print('[green][+][/] ログインに成功しました.  ')
-        save_session(session)
-    else:
-        console.print('[red][-][/] ログインに失敗しました.  ')
+            console.print('[green][+][/] ログイン結果を待機中...')
+            while True:
+                try:
+                    current_url = window.get_current_url()
+                except Exception:
+                    current_url = None
+
+                if current_url and current_url.startswith(ATCODER_HOME_URL):
+                    console.print('[green][+][/] ログイン成功! セッションを保存します')
+
+                    cookie_list = window.get_cookies()
+                    session = Session()
+
+                    for cookie_obj in cookie_list:
+                        for cookie_name, morsel in cookie_obj.items():
+                            # morselからデータを取得
+                            value = morsel.value
+
+                            domain = morsel.get('domain')
+                            if domain is None:
+                                domain = '.atcoder.jp'
+
+                            path = morsel.get('path', '/')
+                            secure = 'secure' in morsel
+
+                            expires = None  # __NSTaggedDateオブジェクトを回避
+
+                            http_only = 'httponly' in morsel
+
+                            # HttpOnlyをrestに含める
+                            rest = {}
+                            if http_only:
+                                rest['HttpOnly'] = True
+
+                            # セッションにクッキーを設定
+                            session.cookies.set(
+                                name=cookie_name,
+                                value=value,
+                                domain=domain,
+                                path=path,
+                                secure=secure,
+                                expires=expires,  # Noneを渡す
+                                rest=rest,
+                            )
+
+                    save_session(session)
+                    window.destroy()
+                    break
+                time.sleep(0.5)
+
+        t = threading.Thread(target=poll_and_submit, daemon=True)
+        t.start()
+
+    webview.start(on_loaded)
