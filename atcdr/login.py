@@ -23,7 +23,7 @@ def login() -> None:
     username = console.input('[cyan]ユーザー名: [/]').strip()
     password = console.input('[cyan]パスワード: [/]').strip()
 
-    window = webview.create_window('AtCoder Login', ATCODER_LOGIN_URL, hidden=False)
+    window = webview.create_window('AtCoder Login', ATCODER_LOGIN_URL, hidden=True)
 
     def on_loaded():
         js_fill = f"""

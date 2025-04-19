@@ -1,13 +1,24 @@
+import webview
 from rich import print
 
 from atcdr.util.session import delete_session, load_session, validate_session
+
+ATCODER_LOGIN_URL = 'https://atcoder.jp/login'
 
 
 def logout() -> None:
     session = load_session()
     if not validate_session(session):
-        print('[red][-][/] ログインしていません.  ')
+        print('[red][-][/] ログインしていません.')
         return
-    else:
-        delete_session()
-        print('[green][+][/] ログアウトしました.  ')
+
+    delete_session()
+    print('[green][+][/] ログアウトしました.')
+
+    window = webview.create_window('AtCoder Logout', ATCODER_LOGIN_URL, hidden=True)
+
+    def on_loaded():
+        window.clear_cookies()
+        window.destroy()
+
+    webview.start(on_loaded, private_mode=False)
