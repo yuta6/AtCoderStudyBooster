@@ -23,7 +23,7 @@ def login() -> None:
     username = console.input('[cyan]ユーザー名: [/]').strip()
     password = console.input('[cyan]パスワード: [/]').strip()
 
-    window = webview.create_window('AtCoder Login', ATCODER_LOGIN_URL, hidden=True)
+    window = webview.create_window('AtCoder Login', ATCODER_LOGIN_URL, hidden=False)
 
     def on_loaded():
         js_fill = f"""
@@ -45,6 +45,7 @@ def login() -> None:
                         break
                 except Exception:
                     pass
+
                 time.sleep(0.5)
 
             console.print('[green][+][/] ログイン結果を待機中...')
@@ -95,9 +96,25 @@ def login() -> None:
                     save_session(session)
                     window.destroy()
                     break
+
+                try:
+                    err = window.evaluate_js(
+                        'Array.from(document.querySelectorAll('
+                        '\'div.alert.alert-danger[role="alert"]\'))'
+                        ".map(e=>e.textContent.trim()).filter(t=>t).join(' ')"
+                    )
+                    err = err.replace('\n', '').replace('\r', '').replace('\t', '')
+                except Exception:
+                    err = ''
+
+                if err:
+                    console.print(f'[red][-][/] エラー: {err}')
+                    window.destroy()
+                    return
+
                 time.sleep(0.5)
 
         t = threading.Thread(target=poll_and_submit, daemon=True)
         t.start()
 
-    webview.start(on_loaded)
+    webview.start(on_loaded, private_mode=False)
