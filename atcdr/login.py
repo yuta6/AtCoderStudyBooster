@@ -23,7 +23,7 @@ def login() -> None:
     username = console.input('[cyan]ユーザー名: [/]').strip()
     password = console.input('[cyan]パスワード: [/]').strip()
 
-    window = webview.create_window('AtCoder Login', ATCODER_LOGIN_URL, hidden=True)
+    window = webview.create_window('AtCoder Login', ATCODER_LOGIN_URL, hidden=False)
 
     def on_loaded():
         js_fill = f"""
@@ -56,43 +56,10 @@ def login() -> None:
                     current_url = None
 
                 if current_url and current_url.startswith(ATCODER_HOME_URL):
-                    console.print('[green][+][/] ログイン成功! セッションを保存します')
+                    console.print('[green][+][/] ログイン成功!')
 
-                    cookie_list = window.get_cookies()
                     session = Session()
-
-                    for cookie_obj in cookie_list:
-                        for cookie_name, morsel in cookie_obj.items():
-                            # morselからデータを取得
-                            value = morsel.value
-
-                            domain = morsel.get('domain')
-                            if domain is None:
-                                domain = '.atcoder.jp'
-
-                            path = morsel.get('path', '/')
-                            secure = 'secure' in morsel
-
-                            expires = None  # __NSTaggedDateオブジェクトを回避
-
-                            http_only = 'httponly' in morsel
-
-                            # HttpOnlyをrestに含める
-                            rest = {}
-                            if http_only:
-                                rest['HttpOnly'] = True
-
-                            # セッションにクッキーを設定
-                            session.cookies.set(
-                                name=cookie_name,
-                                value=value,
-                                domain=domain,
-                                path=path,
-                                secure=secure,
-                                expires=expires,  # Noneを渡す
-                                rest=rest,
-                            )
-
+                    session = move_cookies_from_webview_to_session(window, session)
                     save_session(session)
                     window.destroy()
                     break
@@ -109,6 +76,9 @@ def login() -> None:
 
                 if err:
                     console.print(f'[red][-][/] エラー: {err}')
+                    session = Session()
+                    session = move_cookies_from_webview_to_session(window, session)
+                    save_session(session)
                     window.destroy()
                     return
 
@@ -118,3 +88,42 @@ def login() -> None:
         t.start()
 
     webview.start(on_loaded, private_mode=False)
+
+
+def move_cookies_from_webview_to_session(
+    window: webview.Window, session: Session
+) -> Session:
+    cookie_list = window.get_cookies()
+    for cookie_obj in cookie_list:
+        for cookie_name, morsel in cookie_obj.items():
+            # morselからデータを取得
+            value = morsel.value
+
+            domain = morsel.get('domain')
+            if domain is None:
+                domain = '.atcoder.jp'
+
+            path = morsel.get('path', '/')
+            secure = 'secure' in morsel
+
+            expires = None  # __NSTaggedDateオブジェクトを回避
+
+            http_only = 'httponly' in morsel
+
+            # HttpOnlyをrestに含める
+            rest = {}
+            if http_only:
+                rest['HttpOnly'] = True
+
+            # セッションにクッキーを設定
+            session.cookies.set(
+                name=cookie_name,
+                value=value,
+                domain=domain,
+                path=path,
+                secure=secure,
+                expires=expires,  # Noneを渡す
+                rest=rest,
+            )
+
+    return session
