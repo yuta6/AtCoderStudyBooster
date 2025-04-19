@@ -11,7 +11,7 @@ from rich.table import Table
 
 from atcdr.util.parse import get_username_from_html
 
-COOKIE_PATH = os.path.join(os.path.expanduser('~'), '.cache', 'atcder', 'session.json')
+COOKIE_PATH = os.path.join(os.path.expanduser('~'), '.cache', 'atcdr', 'session.json')
 
 
 # デバック用のレスポンス解析用関数
