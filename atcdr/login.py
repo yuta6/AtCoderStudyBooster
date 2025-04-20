@@ -33,56 +33,60 @@ def login() -> None:
         window.evaluate_js(js_fill)
 
         def poll_and_submit():
-            console.print('[green][+][/] Cloudflareの認証の待機中...')
-            while True:
-                try:
-                    token = window.evaluate_js(
-                        'document.querySelector(\'input[name=\\"cf-turnstile-response\\"]\').value'
-                    )
-                    if token:
-                        console.print('[green][+][/] ログインします')
-                        window.evaluate_js("document.getElementById('submit').click();")
+            with console.status(
+                'キャプチャー認証を解決してください', spinner='circleHalves'
+            ):
+                while True:
+                    try:
+                        token = window.evaluate_js(
+                            'document.querySelector(\'input[name=\\"cf-turnstile-response\\"]\').value'
+                        )
+                        if token:
+                            console.print('[green][+][/] ログインします')
+                            window.evaluate_js(
+                                "document.getElementById('submit').click();"
+                            )
+                            break
+                    except Exception:
+                        pass
+
+                    time.sleep(0.5)
+
+            with console.status('ログインの結果の待機中...', spinner='circleHalves'):
+                while True:
+                    try:
+                        current_url = window.get_current_url()
+                    except Exception:
+                        current_url = None
+
+                    if current_url and current_url.startswith(ATCODER_HOME_URL):
+                        console.print('[green][+][/] ログイン成功!')
+
+                        session = Session()
+                        session = move_cookies_from_webview_to_session(window, session)
+                        save_session(session)
+                        window.destroy()
                         break
-                except Exception:
-                    pass
 
-                time.sleep(0.5)
+                    try:
+                        err = window.evaluate_js(
+                            'Array.from(document.querySelectorAll('
+                            '\'div.alert.alert-danger[role="alert"]\'))'
+                            ".map(e=>e.textContent.trim()).filter(t=>t).join(' ')"
+                        )
+                        err = err.replace('\n', '').replace('\r', '').replace('\t', '')
+                    except Exception:
+                        err = ''
 
-            console.print('[green][+][/] ログイン結果を待機中...')
-            while True:
-                try:
-                    current_url = window.get_current_url()
-                except Exception:
-                    current_url = None
+                    if err:
+                        console.print(f'[red][-][/] エラー: {err}')
+                        session = Session()
+                        session = move_cookies_from_webview_to_session(window, session)
+                        save_session(session)
+                        window.destroy()
+                        return
 
-                if current_url and current_url.startswith(ATCODER_HOME_URL):
-                    console.print('[green][+][/] ログイン成功!')
-
-                    session = Session()
-                    session = move_cookies_from_webview_to_session(window, session)
-                    save_session(session)
-                    window.destroy()
-                    break
-
-                try:
-                    err = window.evaluate_js(
-                        'Array.from(document.querySelectorAll('
-                        '\'div.alert.alert-danger[role="alert"]\'))'
-                        ".map(e=>e.textContent.trim()).filter(t=>t).join(' ')"
-                    )
-                    err = err.replace('\n', '').replace('\r', '').replace('\t', '')
-                except Exception:
-                    err = ''
-
-                if err:
-                    console.print(f'[red][-][/] エラー: {err}')
-                    session = Session()
-                    session = move_cookies_from_webview_to_session(window, session)
-                    save_session(session)
-                    window.destroy()
-                    return
-
-                time.sleep(0.5)
+                    time.sleep(0.5)
 
         t = threading.Thread(target=poll_and_submit, daemon=True)
         t.start()

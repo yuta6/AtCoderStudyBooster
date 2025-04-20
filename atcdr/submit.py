@@ -92,7 +92,7 @@ def post_source(source_path: str, url: str, session: requests.Session) -> Option
     lang = detect_language(source_path)
     langid = choose_langid_interactively(lang_dict, lang)
 
-    api = type('API', (), {'html': None, 'url': None, 'injected': False})()
+    api = type('API', (), {'html': None, 'url': None})()
     window = webview.create_window(
         'AtCoder Submit', url, js_api=api, width=800, height=600, hidden=False
     )
@@ -100,14 +100,12 @@ def post_source(source_path: str, url: str, session: requests.Session) -> Option
     def on_loaded():
         current = window.get_current_url()
 
-        if api.injected and current != url:
+        if current != url:
             dom = window.evaluate_js('document.documentElement.outerHTML')
             api.html = dom
             api.url = current
             window.destroy()
-            return
-
-        if not api.injected:
+        else:
             safe_src = source.replace('\\', '\\\\').replace('`', '\\`')
             inject_js = f"""
             (function() {{
@@ -134,10 +132,11 @@ def post_source(source_path: str, url: str, session: requests.Session) -> Option
             }})();
             """
             window.evaluate_js(inject_js)
-            api.injected = True
 
     window.events.loaded += on_loaded
-    webview.start(private_mode=False)
+
+    with Status('キャプチャー認証を解決してください', spinner='circleHalves'):
+        webview.start(private_mode=False)
 
     if 'submit' in api.url:
         print('[red][-][/red] 提出に失敗しました')
