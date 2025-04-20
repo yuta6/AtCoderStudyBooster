@@ -1,9 +1,22 @@
 import os
+from enum import Enum
 from typing import Dict, List, Optional
 
 import requests
 
-from atcdr.util.cost import CostType, Currency, Model, Rate
+
+class Model(Enum):
+    GPT4O = 'gpt-4o'
+    GPT41 = 'gpt-4.1'
+    GPT41_MINI = 'gpt-4.1-mini'
+    GPT41_NANO = 'gpt-4.1-nano'
+    GPT4O_MINI = 'gpt-4o-mini'
+    O1_PREVIEW = 'o1-preview'
+    O1 = 'o1'
+    O3 = 'o3'
+    O1_MINI = 'o1-mini'
+    O3_MINI = 'o3-mini'
+    O4_MINI = 'o4-mini'
 
 
 def set_api_key() -> Optional[str]:
@@ -57,7 +70,7 @@ class ChatGPT:
     def __init__(
         self,
         api_key: Optional[str] = None,
-        model: Model = Model.GPT4O_MINI,
+        model: Model = Model.GPT41_MINI,
         max_tokens: int = 3000,
         temperature: float = 0.7,
         messages: Optional[List[Dict[str, str]]] = None,
@@ -73,7 +86,6 @@ class ChatGPT:
             else [{'role': 'system', 'content': system_prompt}]
         )
 
-        self.sum_cost: Currency = Currency(usd=0)
         self.__headers = {
             'Content-Type': 'application/json',
             'Authorization': f'Bearer {self.api_key}',
@@ -99,14 +111,8 @@ class ChatGPT:
 
         self.messages.append({'role': 'assistant', 'content': reply})
 
-        usage = responsej['usage']
-        input_tokens = usage.get('prompt_tokens', 0)
-        output_tokens = usage.get('completion_tokens', 0)
-        self.sum_cost += Rate.calc_cost(
-            model=self.model, cost_type=CostType.INPUT, token_count=input_tokens
-        )
-        self.sum_cost += Rate.calc_cost(
-            model=self.model, cost_type=CostType.OUTPUT, token_count=output_tokens
-        )
+        # usage = responsej['usage']
+        # input_tokens = usage.get('prompt_tokens', 0)
+        # output_tokens = usage.get('completion_tokens', 0)
 
         return reply

@@ -7,7 +7,6 @@ from rich.panel import Panel
 from rich.syntax import Syntax
 
 from atcdr.test import ResultStatus, TestRunner, create_renderable_test_info
-from atcdr.util.cost import Model
 from atcdr.util.execute import execute_files
 from atcdr.util.filetype import (
     FILE_EXTENSIONS,
@@ -16,7 +15,7 @@ from atcdr.util.filetype import (
     lang2str,
     str2lang,
 )
-from atcdr.util.gpt import ChatGPT, set_api_key
+from atcdr.util.gpt import ChatGPT, Model, set_api_key
 from atcdr.util.parse import ProblemHTML
 
 
@@ -75,8 +74,6 @@ def generate_code(file: Filename, lang: Lang, model: Model) -> None:
         )
         f.write(code)
 
-    console.print(f'AI利用にかかったAPIコスト:{gpt.sum_cost}')
-
 
 def generate_template(file: Filename, lang: Lang) -> None:
     console = Console()
@@ -110,8 +107,6 @@ You must not solve the problem. Please faithfully reproduce the variable names d
             f'[green][+][/green] テンプレートファイルを作成 :{savaed_filename}'
         )
         f.write(code)
-
-    console.print(f'AI利用にかかったAPIコスト:{gpt.sum_cost}')
 
 
 def solve_problem(file: Filename, lang: Lang, model: Model) -> None:
@@ -183,14 +178,13 @@ Please provide an updated version of the code in {lang2str(lang)}."""
             f'[green][+][/] {gpt.model.value}の出力のログを保存しました：{f.name}'
         )
         f.write(json.dumps(gpt.messages, indent=2))
-    console.print(f'AI利用にかかったAPIコスト:{gpt.sum_cost}')
     return
 
 
 def generate(
     *source: str,
     lang: str = 'Python',
-    model: str = Model.GPT4O_MINI.value,
+    model: str = Model.GPT41_MINI.value,
     without_test: bool = False,
     template: bool = False,
 ) -> None:
