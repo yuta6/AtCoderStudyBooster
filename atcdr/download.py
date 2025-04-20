@@ -170,14 +170,15 @@ def interactive_download() -> None:
         ),
     ).ask()
 
-    session = load_session()
-
     if choice == CONTEST:
         name = Prompt.ask(
             'コンテスト名を入力してください (例: abc012, abs, typical90)',
         )
 
-        problems = Contest(name=name).problems(session=session)
+        problems = Contest(name=name).problems(session=load_session())
+        if not problems:
+            print(f'[red][Error][/red] コンテスト名が間違っています: {name}')
+            return
 
         generate_problem_directory('.', problems, GenerateMode.gene_path_on_num)
 
@@ -211,7 +212,7 @@ def interactive_download() -> None:
             'コンテスト名を入力してください (例: abc012, abs, typical90)',
         )
 
-        problems = Contest(name=name).problems(session=session)
+        problems = Contest(name=name).problems(session=load_session())
 
         problem = q.select(
             message='どの問題をダウンロードしますか?',
@@ -250,16 +251,25 @@ def download(
         interactive_download()
         return
 
-    first_args = convert_arg(str(first))
     if second is None:
-        if isinstance(first, Diff):
+        try:
+            first_args = convert_arg(str(first))
+        except ValueError:
+            first = str(first)
+            problems = Contest(name=first).problems(session=load_session())
+            if not problems:
+                print(f'[red][Error][red/] コンテスト名が間違っています: {first}')
+                return
+            generate_problem_directory('.', problems, GenerateMode.gene_path_on_num)
+            return
+
+        if are_all_diffs(first_args):
             raise ValueError(
                 """難易度だけでなく, 問題番号も指定してコマンドを実行してください.
                     例 atcdr -d A 120  : A問題の120をダウンロードます
                     例 atcdr -d A 120..130  : A問題の120から130をダウンロードます
                 """
             )
-        second_args: Union[List[int], List[Diff]] = convert_arg('A..G')
     else:
         second_args = convert_arg(str(second))
 
