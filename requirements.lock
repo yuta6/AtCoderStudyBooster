@@ -13,7 +13,6 @@
 beautifulsoup4==4.12.3
     # via atcoderstudybooster
     # via markdownify
-    # via yfinance
 bottle==0.13.2
     # via pywebview
 certifi==2024.7.4
@@ -22,31 +21,14 @@ charset-normalizer==3.3.2
     # via requests
 fire==0.6.0
     # via atcoderstudybooster
-frozendict==2.4.4
-    # via yfinance
-html5lib==1.1
-    # via yfinance
 idna==3.7
     # via requests
-lxml==5.3.0
-    # via yfinance
 markdown-it-py==3.0.0
     # via rich
 markdownify==0.13.1
     # via atcoderstudybooster
 mdurl==0.1.2
     # via markdown-it-py
-multitasking==0.0.11
-    # via yfinance
-numpy==2.0.1
-    # via pandas
-    # via yfinance
-pandas==2.2.2
-    # via yfinance
-peewee==3.17.6
-    # via yfinance
-platformdirs==4.2.2
-    # via yfinance
 prompt-toolkit==3.0.36
     # via questionary
 proxy-tools==0.1.0
@@ -70,11 +52,6 @@ pyobjc-framework-security==11.0
     # via pywebview
 pyobjc-framework-webkit==11.0
     # via pywebview
-python-dateutil==2.9.0.post0
-    # via pandas
-pytz==2024.1
-    # via pandas
-    # via yfinance
 pywebview==5.4
     # via atcoderstudybooster
 questionary==2.0.1
@@ -84,14 +61,11 @@ regex==2024.7.24
 requests==2.32.3
     # via atcoderstudybooster
     # via tiktoken
-    # via yfinance
 rich==13.7.1
     # via atcoderstudybooster
 six==1.16.0
     # via fire
-    # via html5lib
     # via markdownify
-    # via python-dateutil
 soupsieve==2.5
     # via beautifulsoup4
 termcolor==2.4.0
@@ -106,14 +80,8 @@ types-requests==2.32.0.20240712
     # via atcoderstudybooster
 typing-extensions==4.13.2
     # via pywebview
-tzdata==2024.1
-    # via pandas
 urllib3==2.2.2
     # via requests
     # via types-requests
 wcwidth==0.2.13
     # via prompt-toolkit
-webencodings==0.5.1
-    # via html5lib
-yfinance==0.2.41
-    # via atcoderstudybooster
