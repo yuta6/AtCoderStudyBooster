@@ -2,293 +2,431 @@ import os
 import subprocess
 import tempfile
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
-from typing import Callable, Dict, List, Optional, Union
+from typing import Dict, List, Optional, Tuple, Union
 
-from bs4 import BeautifulSoup as bs
-from rich.console import Console
+from rich.console import Group, RenderableType
+from rich.live import Live
 from rich.markup import escape
 from rich.panel import Panel
+from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn
+from rich.rule import Rule
+from rich.style import Style
+from rich.syntax import Syntax
 from rich.table import Table
 from rich.text import Text
 
 from atcdr.util.execute import execute_files
-from atcdr.util.filetype import FILE_EXTENSIONS, SOURCE_LANGUAGES, Lang
+from atcdr.util.filetype import (
+    COMPILED_LANGUAGES,
+    INTERPRETED_LANGUAGES,
+    Lang,
+    detect_language,
+    lang2str,
+)
+from atcdr.util.parse import ProblemHTML
 
 
 @dataclass
 class TestCase:
-	input: str
-	output: str
+    input: str
+    output: str
 
 
 @dataclass
 class LabeledTestCase:
-	label: str
-	case: TestCase
+    label: str
+    case: TestCase
 
 
 class ResultStatus(Enum):
-	CE = 'Compilation Error'
-	MLE = 'Memory Limit Exceeded'
-	TLE = 'Time Limit Exceeded'
-	RE = 'Runtime Error'
-	WA = 'Wrong Answer'
-	AC = 'Accepted'
+    AC = 'Accepted'
+    WA = 'Wrong Answer'
+    TLE = 'Time Limit Exceeded'
+    MLE = 'Memory Limit Exceeded'
+    RE = 'Runtime Error'
+    CE = 'Compilation Error'
+    WJ = 'Juding ...'
 
 
 @dataclass
 class TestCaseResult:
-	output: str
-	executed_time: Union[int, None]
-	# memory_usage: Union[int, None]
-	passed: ResultStatus
+    output: str
+    executed_time: Union[int, None]
+    # memory_usage: Union[int, None]
+    passed: ResultStatus
 
 
 @dataclass
 class LabeledTestCaseResult:
-	label: str
-	testcase: TestCase
-	# TODO : 実はラベル自体を使わない方がいいかもしれない.ラベルという概念が削除してプリントするときに適当にTest1, Test2と適当に名前をつけてもいいかも.
-	result: TestCaseResult
+    label: str
+    testcase: TestCase
+    result: TestCaseResult
 
 
-def create_testcases_from_html(html: str) -> List[LabeledTestCase]:
-	soup = bs(html, 'html.parser')
-	test_cases = []
+@dataclass
+class TestInformation:
+    lang: Lang
+    sourcename: str
+    case_number: int
+    results: List[ResultStatus] = field(default_factory=list)
+    compiler_message: str = ''
+    compile_time: Optional[int] = None
+    _summary: Optional[ResultStatus] = None
 
-	for i in range(1, 20):
-		sample_input_section = soup.find('h3', text=f'Sample Input {i}')
-		sample_output_section = soup.find('h3', text=f'Sample Output {i}')
-		if not sample_input_section or not sample_output_section:
-			break
+    @property
+    def summary(self) -> ResultStatus:
+        if self._summary:
+            return self._summary
+        else:
+            priority_order = [
+                ResultStatus.CE,
+                ResultStatus.RE,
+                ResultStatus.WA,
+                ResultStatus.TLE,
+                ResultStatus.MLE,
+                ResultStatus.WJ,
+                ResultStatus.AC,
+            ]
+            priority_dict = {
+                status: index + 1 for index, status in enumerate(priority_order)
+            }
+            summary = min(
+                self.results,
+                key=lambda status: priority_dict[status],
+                default=ResultStatus.WJ,
+            )
 
-		sample_input_pre = sample_input_section.find_next('pre')
-		sample_output_pre = sample_output_section.find_next('pre')
+            if len(self.results) == self.case_number:
+                return summary
 
-		sample_input = (
-			sample_input_pre.get_text(strip=True)
-			if sample_input_pre is not None
-			else ''
-		)
-		sample_output = (
-			sample_output_pre.get_text(strip=True)
-			if sample_output_pre is not None
-			else ''
-		)
+            return ResultStatus.WJ if summary == ResultStatus.AC else summary
 
-		test_case = TestCase(input=sample_input, output=sample_output)
-		labeled_test_case = LabeledTestCase(label=f'Sample {i}', case=test_case)
-		test_cases.append(labeled_test_case)
+    @summary.setter
+    def summary(self, value: ResultStatus) -> None:
+        self._summary = value
 
-	return test_cases
+    def update(
+        self, updator: Union[TestCaseResult, LabeledTestCaseResult, ResultStatus]
+    ) -> None:
+        match updator:
+            case TestCaseResult():
+                self.results.append(updator.passed)
+            case LabeledTestCaseResult():
+                self.results.append(updator.result.passed)
+            case ResultStatus():
+                self.results.append(updator)
+
+    def __iadd__(
+        self, other: Union[TestCaseResult, LabeledTestCaseResult, ResultStatus]
+    ) -> 'TestInformation':
+        self.update(other)
+        return self
+
+
+class TestRunner:
+    def __init__(self, path: str, lcases: List[LabeledTestCase]) -> None:
+        self.source = path
+        self.lcases = iter(lcases)
+        self.info = TestInformation(
+            lang=detect_language(self.source),
+            sourcename=path,
+            case_number=len(lcases),
+        )
+
+    def __iter__(self):
+        lang = self.info.lang
+        if lang in COMPILED_LANGUAGES:
+            exe_path, compile_result, compile_time = run_compile(self.source, lang)
+            self.info.compiler_message = compile_result.stderr
+            self.info.compile_time = compile_time
+            if compile_result.returncode != 0:
+                self.info.results = [ResultStatus.CE]
+                return iter([])
+
+            self.cmd = [
+                arg.format(source_path=self.source, exec_path=exe_path)
+                for arg in LANGUAGE_RUN_COMMANDS[lang]
+            ]
+            self.exe = exe_path
+            run_code(self.cmd, TestCase(input='', output=''))  # バイナリーの慣らし運転
+        elif lang in INTERPRETED_LANGUAGES:
+            self.cmd = [
+                arg.format(source_path=self.source)
+                for arg in LANGUAGE_RUN_COMMANDS[lang]
+            ]
+            self.exe = None
+        else:
+            raise ValueError(f'{lang}の適切な言語のランナーが見つかりませんでした.')
+
+        return self
+
+    def __next__(self):
+        try:
+            lcase = next(self.lcases)
+            result = run_code(self.cmd, lcase.case)
+            self.info += result
+            return LabeledTestCaseResult(lcase.label, lcase.case, result)
+        except StopIteration:
+            if self.exe and os.path.exists(self.exe):
+                os.remove(self.exe)
+            raise
 
 
 def run_code(cmd: list, case: TestCase) -> TestCaseResult:
-	try:
-		start_time = time.time()
-		proc = subprocess.run(
-			cmd, input=case.input, text=True, capture_output=True, timeout=4
-		)
-		end_time = time.time()
+    start_time = time.time()
+    try:
+        proc = subprocess.run(
+            cmd, input=case.input, text=True, capture_output=True, timeout=4
+        )
+        end_time = time.time()
+        executed_time = int((end_time - start_time) * 1000)
+    except subprocess.TimeoutExpired as e_proc:
+        end_time = time.time()
+        executed_time = int((end_time - start_time) * 1000)
+        stdout_text = e_proc.stdout.decode('utf-8') if e_proc.stdout is not None else ''
+        stderr_text = e_proc.stderr.decode('utf-8') if e_proc.stderr is not None else ''
+        text = stdout_text + '\n' + stderr_text
+        return TestCaseResult(
+            output=text, executed_time=executed_time, passed=ResultStatus.TLE
+        )
 
-		execution_time = int((end_time - start_time) * 1000)
+    # プロセスの終了コードを確認し、異常終了ならREを返す
+    if proc.returncode != 0:
+        return TestCaseResult(
+            output=proc.stdout + '\n' + proc.stderr,
+            executed_time=executed_time,
+            passed=ResultStatus.RE,
+        )
 
-		if proc.returncode != 0:
-			return TestCaseResult(
-				output=proc.stderr, executed_time=None, passed=ResultStatus.RE
-			)
+    # 実際の出力と期待される出力を比較
+    actual_output = proc.stdout.strip()
+    expected_output = case.output.strip()
 
-		actual_output = proc.stdout.strip()
-		expected_output = case.output.strip()
-
-		if actual_output != expected_output:
-			return TestCaseResult(
-				output=actual_output,
-				executed_time=execution_time,
-				passed=ResultStatus.WA,
-			)
-
-		return TestCaseResult(
-			output=actual_output, executed_time=execution_time, passed=ResultStatus.AC
-		)
-	except subprocess.TimeoutExpired:
-		return TestCaseResult(
-			output='Time Limit Exceeded', executed_time=None, passed=ResultStatus.TLE
-		)
-	except Exception as e:
-		return TestCaseResult(output=str(e), executed_time=None, passed=ResultStatus.RE)
-
-
-def run_python(path: str, case: TestCase) -> TestCaseResult:
-	return run_code(['python3', path], case)
-
-
-def run_javascript(path: str, case: TestCase) -> TestCaseResult:
-	return run_code(['node', path], case)
+    if actual_output != expected_output:
+        return TestCaseResult(
+            output=actual_output,
+            executed_time=executed_time,
+            passed=ResultStatus.WA,
+        )
+    else:
+        return TestCaseResult(
+            output=actual_output, executed_time=executed_time, passed=ResultStatus.AC
+        )
 
 
-def run_c(path: str, case: TestCase) -> TestCaseResult:
-	with tempfile.NamedTemporaryFile(delete=True) as tmp:
-		exec_path = tmp.name
-		compile_result = subprocess.run(
-			['gcc', path, '-o', exec_path], capture_output=True, text=True
-		)
-		if compile_result.returncode != 0:
-			return TestCaseResult(
-				output=compile_result.stderr, executed_time=None, passed=ResultStatus.CE
-			)
-		return run_code([exec_path], case)
+LANGUAGE_RUN_COMMANDS: Dict[Lang, list] = {
+    Lang.PYTHON: ['python3', '{source_path}'],
+    Lang.JAVASCRIPT: ['node', '{source_path}'],
+    Lang.C: ['{exec_path}'],
+    Lang.CPP: ['{exec_path}'],
+    Lang.RUST: ['{exec_path}'],
+    Lang.JAVA: ['java', os.path.splitext(os.path.basename('{source_path}'))[0]],
+}
 
-
-def run_cpp(path: str, case: TestCase) -> TestCaseResult:
-	with tempfile.NamedTemporaryFile(delete=True) as tmp:
-		exec_path = tmp.name
-		compile_result = subprocess.run(
-			['g++', path, '-o', exec_path], capture_output=True, text=True
-		)
-		if compile_result.returncode != 0:
-			return TestCaseResult(
-				output=compile_result.stderr, executed_time=None, passed=ResultStatus.CE
-			)
-		return run_code([exec_path], case)
-
-
-def run_rust(path: str, case: TestCase) -> TestCaseResult:
-	with tempfile.NamedTemporaryFile(delete=True) as tmp:
-		exec_path = tmp.name
-		compile_result = subprocess.run(
-			['rustc', path, '-o', exec_path], capture_output=True, text=True
-		)
-		if compile_result.returncode != 0:
-			return TestCaseResult(
-				output=compile_result.stderr, executed_time=None, passed=ResultStatus.CE
-			)
-		return run_code([exec_path], case)
-
-
-def run_java(path: str, case: TestCase) -> TestCaseResult:
-	compile_result = subprocess.run(['javac', path], capture_output=True, text=True)
-	if compile_result.returncode != 0:
-		return TestCaseResult(
-			output=compile_result.stderr, executed_time=None, passed=ResultStatus.CE
-		)
-	class_file = os.path.splitext(path)[0]
-	try:
-		return run_code(['java', class_file], case)
-	finally:
-		class_path = class_file + '.class'
-		if os.path.exists(class_path):
-			os.remove(class_path)
-
-
-LANGUAGE_RUNNERS: Dict[Lang, Callable[[str, TestCase], TestCaseResult]] = {
-	Lang.PYTHON: run_python,
-	Lang.JAVASCRIPT: run_javascript,
-	Lang.C: run_c,
-	Lang.CPP: run_cpp,
-	Lang.RUST: run_rust,
-	Lang.JAVA: run_java,
+LANGUAGE_COMPILE_COMMANDS: Dict[Lang, list] = {
+    Lang.C: ['gcc', '{source_path}', '-o', '{exec_path}'],
+    Lang.CPP: ['g++', '{source_path}', '-o', '{exec_path}'],
+    Lang.RUST: ['rustc', '{source_path}', '-o', '{exec_path}'],
+    Lang.JAVA: ['javac', '{source_path}'],
 }
 
 
-def choose_lang(path: str) -> Optional[Callable[[str, TestCase], TestCaseResult]]:
-	ext = os.path.splitext(path)[1]
-	lang = next(
-		(lang for lang, extension in FILE_EXTENSIONS.items() if extension == ext), None
-	)
-	# lang が None でない場合のみ get を呼び出す
-	if lang is not None:
-		return LANGUAGE_RUNNERS.get(lang)
-	return None
+def run_compile(
+    path: str, lang: Lang
+) -> Tuple[str, subprocess.CompletedProcess, Optional[int]]:
+    with tempfile.NamedTemporaryFile(delete=False) as tmp:
+        exec_path = tmp.name
+    cmd = [
+        arg.format(source_path=path, exec_path=exec_path)
+        for arg in LANGUAGE_COMPILE_COMMANDS[lang]
+    ]
+    start_time = time.time()
+    compile_result = subprocess.run(cmd, capture_output=True, text=True)
+    compile_time = int((time.time() - start_time) * 1000)
+
+    return exec_path, compile_result, compile_time
 
 
-def judge_code_from(
-	lcases: List[LabeledTestCase], path: str
-) -> List[LabeledTestCaseResult]:
-	runner = choose_lang(path)
-	if runner is None:
-		raise ValueError(f'ランナーが見つかりませんでした。指定されたパス: {path}')
+COLOR_MAP = {
+    ResultStatus.AC: 'green',
+    ResultStatus.WA: 'red',
+    ResultStatus.TLE: 'yellow',
+    ResultStatus.MLE: 'yellow',
+    ResultStatus.RE: 'yellow',
+    ResultStatus.CE: 'yellow',
+    ResultStatus.WJ: 'grey',
+}
 
-	return [
-		LabeledTestCaseResult(lcase.label, lcase.case, runner(path, lcase.case))
-		for lcase in lcases
-	]
+STATUS_TEXT_MAP = {
+    ResultStatus.AC: Text.assemble(
+        ('\u2713 ', 'green'),
+        (
+            f'{ResultStatus.AC.value}',
+            Style(bgcolor=COLOR_MAP[ResultStatus.AC], bold=True),
+        ),
+    ),
+    ResultStatus.WA: Text(
+        f'\u00d7 {ResultStatus.WA.value}', style=COLOR_MAP[ResultStatus.WA]
+    ),
+    ResultStatus.TLE: Text(
+        f'\u00d7 {ResultStatus.TLE.value}', style=COLOR_MAP[ResultStatus.TLE]
+    ),
+    ResultStatus.MLE: Text(
+        f'\u00d7 {ResultStatus.MLE.value}', style=COLOR_MAP[ResultStatus.MLE]
+    ),
+    ResultStatus.RE: Text(
+        f'\u00d7 {ResultStatus.RE.value}', style=COLOR_MAP[ResultStatus.RE]
+    ),
+    ResultStatus.CE: Text(
+        f'\u00d7 {ResultStatus.CE.value}', style=COLOR_MAP[ResultStatus.CE]
+    ),
+    ResultStatus.WJ: Text(
+        f'\u23f3 {ResultStatus.WJ.value}', style=COLOR_MAP[ResultStatus.WJ]
+    ),
+}
 
 
-class CustomFormatStyle(Enum):
-	SUCCESS = 'green'
-	FAILURE = 'red'
-	WARNING = 'yellow'
-	INFO = 'blue'
+def create_renderable_test_info(
+    test_info: TestInformation, progress: Optional[Progress] = None
+) -> RenderableType:
+    components = []
+
+    success_count = sum(1 for result in test_info.results if result == ResultStatus.AC)
+    total_count = test_info.case_number
+
+    status_text = STATUS_TEXT_MAP[test_info.summary]
+
+    header_text = Text.assemble(
+        Text.from_markup(f'[cyan]{test_info.sourcename}[/]のテスト \n'),
+        Text.from_markup(
+            f'[italic #0f0f0f]コンパイルにかかった時間: [not italic cyan]{test_info.compile_time}[/] ms[/]\n'
+        )
+        if test_info.compile_time
+        else Text(''),
+        status_text,
+        Text.from_markup(
+            f'  [{COLOR_MAP[test_info.summary]} bold]{success_count}[/] / [white bold]{total_count}[/]'
+        ),
+    )
+
+    if progress:
+        components.append(Panel(Group(header_text, progress), expand=False))
+    else:
+        components.append(Panel(header_text, expand=False))
+
+    if test_info.compiler_message:
+        rule = Rule(
+            title='コンパイラーのメッセージ',
+            style=COLOR_MAP[ResultStatus.CE],
+        )
+        components.append(rule)
+        error_message = Syntax(
+            test_info.compiler_message, lang2str(test_info.lang), line_numbers=False
+        )
+        components.append(error_message)
+
+    return Group(*components)
 
 
-def render_results(path: str, results: List[LabeledTestCaseResult]) -> None:
-	console = Console()
-	success_count = sum(
-		1 for result in results if result.result.passed == ResultStatus.AC
-	)
-	total_count = len(results)
+def create_renderable_test_result(
+    i: int,
+    test_result: LabeledTestCaseResult,
+) -> RenderableType:
+    rule = Rule(
+        title=f'No.{i+1} {test_result.label}',
+        style=COLOR_MAP[test_result.result.passed],
+    )
 
-	# ヘッダー
-	header_text = Text.assemble(
-		f'{path}のテスト  ',
-		(
-			f'{success_count}/{total_count} ',
-			'green' if success_count == total_count else 'red',
-		),
-	)
-	console.print(Panel(header_text, expand=False))
+    # 以下の部分は if-else ブロックの外に移動
+    status_header = Text.assemble(
+        'ステータス ',
+        STATUS_TEXT_MAP[test_result.result.passed],  # status_text をここに追加
+    )
 
-	CHECK_MARK = '\u2713'
-	CROSS_MARK = '\u00d7'
-	# 各テストケースの結果表示
-	for i, result in enumerate(results):
-		if result.result.passed == ResultStatus.AC:
-			status_text = f'[green]{CHECK_MARK}[/] [white on green]{result.result.passed.value}[/]'
-			console.rule(title=f'No.{i+1} {result.label}', style='green')
-			console.print(f'[bold]ステータス:[/] {status_text}')
+    execution_time_text = None
+    if test_result.result.executed_time is not None:
+        execution_time_text = Text.from_markup(
+            f'実行時間   [cyan]{test_result.result.executed_time}[/cyan] ms'
+        )
 
-		else:
-			status_text = f'[red]{CROSS_MARK} {result.result.passed.value}[/]'
-			console.rule(title=f'No.{i+1} {result.label}', style='red')
-			console.print(f'[bold]ステータス:[/] {status_text}')
+    table = Table(show_header=True, header_style='bold')
+    table.add_column('入力', style='cyan', min_width=10)
 
-		if result.result.executed_time is not None:
-			console.print(f'[bold]実行時間:[/] {result.result.executed_time} ms')
+    if test_result.result.passed != ResultStatus.AC:
+        table.add_column(
+            '出力',
+            style=COLOR_MAP[test_result.result.passed],
+            min_width=10,
+            overflow='fold',
+        )
+        table.add_column('正解の出力', style=COLOR_MAP[ResultStatus.AC], min_width=10)
+        table.add_row(
+            escape(test_result.testcase.input),
+            escape(test_result.result.output),
+            escape(test_result.testcase.output),
+        )
+    else:
+        table.add_column(
+            '出力', style=COLOR_MAP[test_result.result.passed], min_width=10
+        )
+        table.add_row(
+            escape(test_result.testcase.input), escape(test_result.result.output)
+        )
 
-		table = Table(show_header=True, header_style='bold')
-		table.add_column('入力', style='cyan', min_width=10)
-		if result.result.passed != ResultStatus.AC:
-			table.add_column('出力', style='red', min_width=10)
-			table.add_column('正解の出力', style='green', min_width=10)
-			table.add_row(
-				escape(result.testcase.input),
-				escape(result.result.output),
-				escape(result.testcase.output),
-			)
-		else:
-			table.add_column('出力', style='green', min_width=10)
-			table.add_row(escape(result.testcase.input), escape(result.result.output))
-		console.print(table)
+    components = [
+        rule,
+        status_header,
+        execution_time_text if execution_time_text else '',
+        table,
+    ]
+
+    return Group(*components)
+
+
+def render_results(test: TestRunner) -> None:
+    progress = Progress(
+        SpinnerColumn(style='white', spinner_name='circleHalves'),
+        TextColumn('{task.description}'),
+        SpinnerColumn(style='white', spinner_name='simpleDots'),
+        BarColumn(),
+    )
+    task_id = progress.add_task(description='テスト進行中', total=test.info.case_number)
+
+    current_display = [create_renderable_test_info(test.info, progress)]
+
+    with Live(Group(*current_display)) as live:
+        for i, result in enumerate(test):
+            progress.advance(task_id, advance=1)
+            current_display[-1] = create_renderable_test_info(test.info, progress)
+            current_display.insert(-1, (create_renderable_test_result(i, result)))
+            live.update(Group(*current_display))
+
+        progress.update(task_id, description='テスト完了')  # 完了メッセージに更新
+        current_display[-1] = create_renderable_test_info(test.info, progress)
+        live.update(Group(*current_display))
 
 
 def run_test(path_of_code: str) -> None:
-	html_paths = [f for f in os.listdir('.') if f.endswith('.html')]
-	if not html_paths:
-		print(
-			'問題のファイルが見つかりません。\n問題のファイルが存在するディレクトリーに移動してから実行してください。'
-		)
-		return
+    html_paths = [f for f in os.listdir('.') if f.endswith('.html')]
+    if not html_paths:
+        print(
+            '問題のファイルが見つかりません。\n問題のファイルが存在するディレクトリーに移動してから実行してください。'
+        )
+        return
 
-	with open(html_paths[0], 'r') as file:
-		html = file.read()
+    with open(html_paths[0], 'r') as file:
+        html = file.read()
 
-	test_cases = create_testcases_from_html(html)
-	test_results = judge_code_from(test_cases, path_of_code)
-	render_results(path_of_code, test_results)
+    lcases = ProblemHTML(html).load_labeled_testcase()
+    test = TestRunner(path_of_code, lcases)
+    render_results(test)
 
 
 def test(*args: str) -> None:
-	execute_files(*args, func=run_test, target_filetypes=SOURCE_LANGUAGES)
+    execute_files(
+        *args,
+        func=run_test,
+        target_filetypes=INTERPRETED_LANGUAGES + COMPILED_LANGUAGES,
+    )

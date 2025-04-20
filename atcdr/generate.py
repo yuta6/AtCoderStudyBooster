@@ -3,104 +3,92 @@ import os
 import re
 
 from rich.console import Console
+from rich.panel import Panel
+from rich.syntax import Syntax
 
-from atcdr.test import (
-	LabeledTestCaseResult,
-	ResultStatus,
-	create_testcases_from_html,
-	judge_code_from,
-	render_results,
-)
+from atcdr.test import ResultStatus, TestRunner, create_renderable_test_info
 from atcdr.util.execute import execute_files
 from atcdr.util.filetype import (
-	FILE_EXTENSIONS,
-	Filename,
-	Lang,
-	lang2str,
-	str2lang,
+    FILE_EXTENSIONS,
+    Filename,
+    Lang,
+    lang2str,
+    str2lang,
 )
-from atcdr.util.gpt import ChatGPT, set_api_key
-from atcdr.util.problem import make_problem_markdown
+from atcdr.util.gpt import ChatGPT, Model, set_api_key
+from atcdr.util.parse import ProblemHTML
 
 
 def get_code_from_gpt_output(output: str) -> str:
-	pattern = re.compile(r'```(?:\w+)?\s*(.*?)\s*```', re.DOTALL)
-	match = pattern.search(output)
-	return match.group(1) if match else ''
+    pattern = re.compile(r'```(?:\w+)?\s*(.*?)\s*```', re.DOTALL)
+    match = pattern.search(output)
+    return match.group(1) if match else ''
 
 
-def render_result_for_GPT(lresult: LabeledTestCaseResult) -> str:
-	output = f'{lresult.label} of Test:\n'
-	result = lresult.result
-	testcase = lresult.testcase
+def render_result_for_GPT(
+    test: TestRunner,
+) -> tuple[str, bool]:
+    results = list(test)
 
-	if result.passed == ResultStatus.AC:
-		output += 'Accepted !! \n'
-
-	elif result.passed == ResultStatus.WA:
-		output += (
-			f'Wrong Answer\n'
-			f'Output:\n{result.output}\n'
-			f'Expected Output:\n{testcase.output}\n'
-		)
-
-	elif result.passed == ResultStatus.RE:
-		output += f'[RE] Runtime Error\n  Output:\n{result.output}'
-
-	elif result.passed == ResultStatus.TLE:
-		output += '[TLE] Time Limit Exceeded\n'
-
-	elif result.passed == ResultStatus.CE:
-		output += f'[CE] Compile Error\n  Output:\n{result.output}'
-
-	elif result.passed == ResultStatus.MLE:
-		output += '[ME] Memory Limit Exceeded\n'
-
-	return output
+    match test.info.summary:
+        case ResultStatus.AC:
+            return 'Accepted', True
+        case ResultStatus.CE:
+            return f'Compile Error \n {test.info.compiler_message}', False
+        case _:
+            message_for_gpt = ''.join(
+                f'\n{result.label} => {result.result.passed.value}\nInput :\n{result.testcase.input}\nOutput :\n{result.result.output}\nExpected :\n{result.testcase.output}\n'
+                if result.result.passed == ResultStatus.WA
+                else f'\n{result.label} => {result.result.passed.value}\nInput :\n{result.testcase.input}\nOutput :\n{result.result.output}\n'
+                for result in results
+            )
+            return message_for_gpt, False
 
 
-def generate_code(file: Filename, lang: Lang) -> None:
-	console = Console()
-	with open(file, 'r') as f:
-		html_content = f.read()
-	md = make_problem_markdown(html_content, 'en')
+def generate_code(file: Filename, lang: Lang, model: Model) -> None:
+    console = Console()
+    with open(file, 'r') as f:
+        html_content = f.read()
+    md = ProblemHTML(html_content).make_problem_markdown('en')
 
-	if set_api_key() is None:
-		return
-	gpt = ChatGPT(
-		system_prompt=f"""You are an excellent programmer. You solve problems in competitive programming.When a user provides you with a problem from a programming contest called AtCoder, including the Problem,Constraints, Input, Output, Input Example, and Output Example, please carefully consider these and solve the problem.Make sure that your output code block contains no more than two blocks. Pay close attention to the Input, Input Example, Output, and Output Example.Create the solution in {lang2str(lang)}.""",
-	)
-	with console.status(f'{gpt.model.value}がコードを生成しています...'):
-		reply = gpt.tell(md)
+    if set_api_key() is None:
+        return
+    gpt = ChatGPT(
+        system_prompt=f"""You are an excellent programmer. You solve problems in competitive programming.When a user provides you with a problem from a programming contest called AtCoder, including the Problem,Constraints, Input, Output, Input Example, and Output Example, please carefully consider these and solve the problem.Make sure that your output code block contains no more than two blocks. Pay close attention to the Input, Input Example, Output, and Output Example.Create the solution in {lang2str(lang)}.""",
+        model=model,
+    )
+    with console.status(f'コード生成中 (by {gpt.model.value})'):
+        reply = gpt.tell(md)
 
-	code = get_code_from_gpt_output(reply)
+    code = get_code_from_gpt_output(reply)
+    console.print('[green][+][/green] コードの生成に成功しました. ')
+    console.rule(f'{gpt.model.value}による{lang2str(lang)}コード')
+    console.print(Syntax(code=code, lexer=lang2str(lang)))
 
-	saved_filename = (
-		os.path.splitext(file)[0] + f'_by_{gpt.model.value}' + FILE_EXTENSIONS[lang]
-	)
-	with open(saved_filename, 'w') as f:
-		console.print(
-			f'[green][+][/green] {gpt.model.value} の出力したコードを保存しました：{f.name}'
-		)
-		f.write(code)
-
-	console.print(f'[info] AI利用にかかったAPIコスト: {gpt.sum_cost}')
+    saved_filename = (
+        os.path.splitext(file)[0] + f'_by_{gpt.model.value}' + FILE_EXTENSIONS[lang]
+    )
+    with open(saved_filename, 'w') as f:
+        console.print(
+            f'[green][+][/green] {gpt.model.value} の出力したコードを保存しました：{f.name}'
+        )
+        f.write(code)
 
 
 def generate_template(file: Filename, lang: Lang) -> None:
-	console = Console()
-	with open(file, 'r') as f:
-		html_content = f.read()
-	md = make_problem_markdown(html_content, 'en')
+    console = Console()
+    with open(file, 'r') as f:
+        html_content = f.read()
+    md = ProblemHTML(html_content).make_problem_markdown('en')
 
-	if set_api_key() is None:
-		return
-	gpt = ChatGPT(
-		system_prompt='You are a highly skilled programmer. Your role is to create a template code for competitive programming.',
-		temperature=0.0,
-	)
+    if set_api_key() is None:
+        return
+    gpt = ChatGPT(
+        system_prompt='You are a highly skilled programmer. Your role is to create a template code for competitive programming.',
+        temperature=0.0,
+    )
 
-	propmpt = f"""
+    propmpt = f"""
 The user will provide a problem from a programming contest called AtCoder. This problem will include the Problem Statement, Constraints, Input, Output, Input Example, and Output Example. You should focus on the Constraints and Input sections to create the template in {lang2str(lang)}.
 
 - First, create the part of the code that handles input. Then, you should read ###Input Block and ###Constraints Block.
@@ -109,112 +97,115 @@ The user will provide a problem from a programming contest called AtCoder. This 
 
 You must not solve the problem. Please faithfully reproduce the variable names defined in the problem.
     """
-	with console.status(f'{lang2str(lang)}のテンプレートを生成しています...'):
-		reply = gpt.tell(md + propmpt)
-	code = get_code_from_gpt_output(reply)
+    with console.status(f'{lang2str(lang)}のテンプレートを生成しています...'):
+        reply = gpt.tell(md + propmpt)
+    code = get_code_from_gpt_output(reply)
 
-	savaed_filename = os.path.splitext(file)[0] + FILE_EXTENSIONS[lang]
-	with open(savaed_filename, 'x') as f:
-		console.print(
-			f'[green][+][/green] テンプレートファイルを作成 :{savaed_filename}'
-		)
-		f.write(code)
-
-	console.print(f'[info] AI利用にかかったAPIコスト: {gpt.sum_cost}')
+    savaed_filename = os.path.splitext(file)[0] + FILE_EXTENSIONS[lang]
+    with open(savaed_filename, 'x') as f:
+        console.print(
+            f'[green][+][/green] テンプレートファイルを作成 :{savaed_filename}'
+        )
+        f.write(code)
 
 
-def solve_problem(file: Filename, lang: Lang) -> None:
-	console = Console()
-	with open(file, 'r') as f:
-		html_content = f.read()
-	md = make_problem_markdown(html_content, 'en')
-	labeled_cases = create_testcases_from_html(html_content)
+def solve_problem(file: Filename, lang: Lang, model: Model) -> None:
+    console = Console()
+    with open(file, 'r') as f:
+        html = ProblemHTML(f.read())
 
-	if set_api_key() is None:
-		return
-	gpt = ChatGPT(
-		system_prompt=f"""You are a brilliant programmer. Your task is to solve an AtCoder problem. AtCoder is a platform that hosts programming competitions where participants write programs to solve algorithmic challenges.Please solve the problem in {lang2str(lang)}.""",
-	)
+    md = html.make_problem_markdown('en')
+    labeled_cases = html.load_labeled_testcase()
 
-	file_without_ext = os.path.splitext(file)[0]
+    if set_api_key() is None:
+        return
+    gpt = ChatGPT(
+        system_prompt=f"""You are a brilliant programmer. Your task is to solve an AtCoder problem. AtCoder is a platform that hosts programming competitions where participants write programs to solve algorithmic challenges.Please solve the problem in {lang2str(lang)}.""",
+        model=model,
+    )
 
-	for i in range(1, 4):
-		with console.status(f'{i}回目のコード生成 (by {gpt.model.value})...'):
-			if i == 1:
-				test_report = ''
-				reply = gpt.tell(md)
-			else:
-				reply = gpt.tell(f"""The following is the test report for the code you provided:
-	{test_report}
-	Please provide an updated version of the code in {lang2str(lang)}.""")
+    file_without_ext = os.path.splitext(file)[0]
 
-		code = get_code_from_gpt_output(reply)
+    for i in range(1, 4):
+        with console.status(f'{i}回目のコード生成中 (by {gpt.model.value})'):
+            if i == 1:
+                test_report = ''
+                reply = gpt.tell(md)
+            else:
+                prompt = f"""The following is the test report for the code you provided:
+                {test_report}
+Please provide an updated version of the code in {lang2str(lang)}."""
+                console.print(
+                    f'[green][+][/] 次のプロンプトを{gpt.model.value}に与え,再生成します'
+                )
+                console.print(Panel(prompt))
+                reply = gpt.tell(prompt)
 
-		saved_filename = (
-			f'{i}_'
-			+ file_without_ext
-			+ f'_by_{gpt.model.value}'
-			+ FILE_EXTENSIONS[lang]
-		)
-		with open(saved_filename, 'w') as f:
-			console.print(
-				f'[green][+][/green] {gpt.model.value} の出力したコードを保存しました：{f.name}'
-			)
-			f.write(code)
+        code = get_code_from_gpt_output(reply)
 
-		labeled_results = judge_code_from(labeled_cases, saved_filename)
-		test_report = '\n'.join(
-			render_result_for_GPT(lresult) for lresult in labeled_results
-		)
+        saved_filename = (
+            f'{i}_'
+            + file_without_ext
+            + f'_by_{gpt.model.value}'
+            + FILE_EXTENSIONS[lang]
+        )
+        with open(saved_filename, 'w') as f:
+            console.print(f'[green][+][/] コードの生成に成功しました！：{f.name}')
+            f.write(code)
 
-		console.rule(f'{i}回目のコード生成でのテスト結果')
-		render_results(saved_filename, labeled_results)
+        with console.status(
+            f'{gpt.model.value}が生成したコードをテスト中', spinner='circleHalves'
+        ):
+            test = TestRunner(saved_filename, labeled_cases)
+            test_report, is_ac = render_result_for_GPT(test)
 
-		if all(
-			labeled_result.result.passed == ResultStatus.AC
-			for labeled_result in labeled_results
-		):
-			console.print('[green]コードのテストに成功![/green]')
-			break
+        console.print(create_renderable_test_info(test.info))
 
-	with open(
-		'log_'
-		+ file_without_ext
-		+ f'_by_{gpt.model.value}'
-		+ FILE_EXTENSIONS[Lang.JSON],
-		'w',
-	) as f:
-		console.print(
-			f'[green][+][/green] {gpt.model.value}の出力のログを保存しました：{f.name}'
-		)
-		f.write(json.dumps(gpt.messages, indent=2))
-	console.print(f'AI利用にかかったAPIコスト:{gpt.sum_cost}')
-	return
+        if is_ac:
+            console.print('[green][+][/] コードのテストに成功!')
+            break
+        else:
+            console.print('[red][-][/] コードのテストに失敗!')
+
+    with open(
+        'log_'
+        + file_without_ext
+        + f'_by_{gpt.model.value}'
+        + FILE_EXTENSIONS[Lang.JSON],
+        'w',
+    ) as f:
+        console.print(
+            f'[green][+][/] {gpt.model.value}の出力のログを保存しました：{f.name}'
+        )
+        f.write(json.dumps(gpt.messages, indent=2))
+    return
 
 
 def generate(
-	*source: str,
-	lang: str = 'Python',
-	without_test: bool = False,
-	template: bool = False,
+    *source: str,
+    lang: str = 'Python',
+    model: str = Model.GPT41_MINI.value,
+    without_test: bool = False,
+    template: bool = False,
 ) -> None:
-	la = str2lang(lang)
+    la = str2lang(lang)
+    model_enum = Model(model)
 
-	if template:
-		execute_files(
-			*source,
-			func=lambda file: generate_template(file, la),
-			target_filetypes=[Lang.HTML],
-		)
-	elif without_test:
-		execute_files(
-			*source,
-			func=lambda file: generate_code(file, la),
-			target_filetypes=[Lang.HTML],
-		)
-	else:
-		execute_files(
-			*source,
-			func=lambda file: solve_problem(file, la),
-			target_filetypes=[Lang.HTML],
-		)
+    if template:
+        execute_files(
+            *source,
+            func=lambda file: generate_template(file, la),
+            target_filetypes=[Lang.HTML],
+        )
+    elif without_test:
+        execute_files(
+            *source,
+            func=lambda file: generate_code(file, la, model_enum),
+            target_filetypes=[Lang.HTML],
+        )
+    else:
+        execute_files(
+            *source,
+            func=lambda file: solve_problem(file, la, model_enum),
+            target_filetypes=[Lang.HTML],
+        )

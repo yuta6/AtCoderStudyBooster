@@ -2,12 +2,11 @@
 
 ## 概要
 
-AtCoderStudyBoosterはAtCoderの学習を加速させるためのツールです。問題をローカルにダウンロードし、テスト、解答の作成をサポートするツールです。Pythonが入っていることが必須です。Pythonが入っている環境なら、`pip install AtCoderStudyBooster`でインストールできます。
+AtCoderStudyBoosterはAtCoderの学習を加速させるためのCLIツールです。問題をローカルにダウンロードし、テスト、提出、解答の作成をサポートするツールです。Pythonが入っていることが必須です。Pythonが入っている環境なら、`pip install AtCoderStudyBooster`でインストールできます。
 
 このツールは以下のプロジェクトに強く影響を受けています。
 [online-judge-tools](https://github.com/online-judge-tools)
 [atcoder-cli](https://github.com/Tatamo/atcoder-cli)
-これらとの違いですが、本ツールはAtCoderでのコンテストでの利用は想定しておらず、初心者の学習のサポートのみを意識しています。そのため、現時点で提出機能は備えていません。また, Chat GPT APIによる解答の作成サポート機能を備えています。
 
 ## 利用ケース
 
@@ -110,10 +109,9 @@ WAの場合は以下のような表示になります。
 
 ```sh
 ~/.../224/B
-❯ atcdr open
+❯ atcdr s
 ```
-を実行すると、デフォルトのブラウザーで問題のページをを開きます。AtCoderのサイトで問題を確認したい場合や解答を提出したい場合にこのコマンドを利用しましょう。
-
+を実行すると, 提出することができます。提出にはAtCoderのサイトへのログインが必要です。
 
 ### 解答をGPTで生成する
 
@@ -123,13 +121,11 @@ WAの場合は以下のような表示になります。
 ```
 で解答をGPTで生成します。Chat GPTのAPIキーが必要です。さらに、生成されたファイルはサンプルケースが自動でテストされ、**テストをパスしなかった場合、テスト結果がGPTにフィードバックされ解答が再生成**されます。
 
-GPTとプログラムとのやり取りのログはJSONファイルで保存されます。また, APIの推定利用料金もプリントします。
+GPTとプログラムとのやり取りのログはJSONファイルで保存されます。
 
 ## 解答生成機能generateコマンドに関する注意点
 
-[AtCoder生成AI対策ルール](https://info.atcoder.jp/entry/llm-abc-rules-ja?_gl=1*1axgs02*_ga*ODc0NDAyNjA4LjE3MTk1ODEyNDA.*_ga_RC512FD18N*MTcyMzMxNDA1Ni43NC4xLjE3MjMzMTY1NjUuMC4wLjA.)によるとAtCoder Beginner Contestにおいてに問題文を生成AIに直接与えることは禁止されています。ただし、このルールは過去問を練習している際には適用されません。
-
-現時点で本ツールにはログイン機能がないため、コンテスト中の問題に対して`download`コマンドは利用して問題をダウンロードすることはできません。`generate`コマンドは`download`コマンドに依存しており、ダウンロードした問題のHTMLファイルをパースしてGPTに解釈しやすいmarkdownを与えることで実現しています。したがって、このコマンドがAtCoder Beginner Contest中に[AtCoder生成AI対策ルール](https://info.atcoder.jp/entry/llm-abc-rules-ja?_gl=1*1axgs02*_ga*ODc0NDAyNjA4LjE3MTk1ODEyNDA.*_ga_RC512FD18N*MTcyMzMxNDA1Ni43NC4xLjE3MjMzMTY1NjUuMC4wLjA.)に抵触することはありません。
+[AtCoder生成AI対策ルール](https://info.atcoder.jp/entry/llm-rules-ja)によるとAtCoder Beginner Contest（以下、ABCとする）および AtCoder Regular Contest (Div. 2) においてに問題文を生成AIに直接与えることは禁止されています。ただし、このルールは過去問を練習している際には適用されません。　該当のコンテスト中にこの機能を使用しないでください。
 
 ## その他の機能
 
