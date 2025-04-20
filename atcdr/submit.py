@@ -93,9 +93,7 @@ def post_source(source_path: str, url: str, session: requests.Session) -> Option
     lang = detect_language(source_path)
     langid = choose_langid_interactively(lang_dict, lang)
 
-    api = type(
-        'API', (), {'submitted': False, 'html': None, 'url': None, 'injected': False}
-    )()
+    api = type('API', (), {'html': None, 'url': None, 'injected': False})()
     window = webview.create_window(
         'AtCoder Submit', url, js_api=api, width=800, height=600, hidden=False
     )
@@ -106,7 +104,6 @@ def post_source(source_path: str, url: str, session: requests.Session) -> Option
         if api.injected and current != url:
             api.html = window.evaluate_js('document.documentElement.outerHTML')
             api.url = current
-            api.submitted = True
             window.destroy()
             return
 
@@ -146,21 +143,22 @@ def post_source(source_path: str, url: str, session: requests.Session) -> Option
 
     webview.start(private_mode=False)
 
-    # 7. Post-submit checks
-    if not api.submitted:
-        print('[red]提出に失敗しました[/red]')
+    if 'submit' in api.url:
+        print('[red][-][/red] 提出に失敗しました')
         return None
+    elif 'submissions' in api.url:
+        submission_id = get_submission_id(api.html)
+        if not submission_id:
+            print('[red][-][/red] 提出IDが取得できませんでした')
+            return None
 
-    submission_id = get_submission_id(api.html)
-    if not submission_id:
-        print('[red]提出IDが取得できませんでした[/red]')
+        url = api.url.replace('/me', f'/{submission_id}')
+        print('[green][+][/green] 提出に成功しました！')
+        print(f'提出ID: {submission_id}, URL: {url}')
+        return url + '/status/json'
+    else:
+        print('[red][-][/red] 提出に失敗しました')
         return None
-
-    url = api.url.replace('/me', f'/{submission_id}')
-
-    print('[green][+][/green] 提出に成功しました！')
-    print(f'提出ID: {submission_id}, URL: {url}')
-    return url + '/status/json'
 
 
 class SubmissionStatus(NamedTuple):
