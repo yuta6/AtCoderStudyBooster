@@ -17,8 +17,8 @@ def logout() -> None:
 
     window = webview.create_window('AtCoder Logout', ATCODER_LOGIN_URL, hidden=True)
 
-    def on_loaded():
+    def on_start():
         window.clear_cookies()
         window.destroy()
 
-    webview.start(on_loaded, private_mode=False)
+    webview.start(on_start, private_mode=False)

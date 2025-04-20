@@ -25,7 +25,7 @@ def login() -> None:
 
     window = webview.create_window('AtCoder Login', ATCODER_LOGIN_URL, hidden=False)
 
-    def on_loaded():
+    def on_start():
         js_fill = f"""
         document.getElementById('username').value = '{username}';
         document.getElementById('password').value = '{password}';
@@ -91,7 +91,7 @@ def login() -> None:
         t = threading.Thread(target=poll_and_submit, daemon=True)
         t.start()
 
-    webview.start(on_loaded, private_mode=False)
+    webview.start(on_start, private_mode=False)
 
 
 def move_cookies_from_webview_to_session(
