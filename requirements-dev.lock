@@ -14,6 +14,8 @@ beautifulsoup4==4.12.3
     # via atcoderstudybooster
     # via markdownify
     # via yfinance
+bottle==0.13.2
+    # via pywebview
 certifi==2024.7.4
     # via requests
 cfgv==3.4.0
@@ -68,14 +70,35 @@ pluggy==1.5.0
 pre-commit==3.8.0
 prompt-toolkit==3.0.36
     # via questionary
+proxy-tools==0.1.0
+    # via pywebview
 pygments==2.18.0
     # via rich
+pyobjc-core==11.0
+    # via pyobjc-framework-cocoa
+    # via pyobjc-framework-quartz
+    # via pyobjc-framework-security
+    # via pyobjc-framework-webkit
+    # via pywebview
+pyobjc-framework-cocoa==11.0
+    # via pyobjc-framework-quartz
+    # via pyobjc-framework-security
+    # via pyobjc-framework-webkit
+    # via pywebview
+pyobjc-framework-quartz==11.0
+    # via pywebview
+pyobjc-framework-security==11.0
+    # via pywebview
+pyobjc-framework-webkit==11.0
+    # via pywebview
 pytest==8.3.2
 python-dateutil==2.9.0.post0
     # via pandas
 pytz==2024.1
     # via pandas
     # via yfinance
+pywebview==5.4
+    # via atcoderstudybooster
 pyyaml==6.0.2
     # via pre-commit
 questionary==2.0.1
@@ -107,6 +130,7 @@ types-requests==2.32.0.20240712
     # via atcoderstudybooster
 typing-extensions==4.12.2
     # via mypy
+    # via pywebview
 tzdata==2024.1
     # via pandas
 urllib3==2.2.2

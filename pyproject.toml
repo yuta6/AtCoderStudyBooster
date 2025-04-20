@@ -16,6 +16,7 @@ dependencies = [
     "markdownify>=0.13.1",
     "rich>=13.7.1",
     "questionary>=2.0.1",
+    "pywebview>=5.4",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"

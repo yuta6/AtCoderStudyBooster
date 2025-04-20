@@ -5,6 +5,7 @@ from typing import Dict, List, NamedTuple, Optional
 
 import questionary as q
 import requests
+import webview
 from bs4 import BeautifulSoup as bs
 from rich import print
 from rich.live import Live
@@ -27,7 +28,7 @@ from atcdr.util.filetype import (
     lang2str,
     str2lang,
 )
-from atcdr.util.parse import ProblemHTML, get_csrf_token, get_submission_id
+from atcdr.util.parse import ProblemHTML, get_submission_id
 from atcdr.util.session import load_session, validate_session
 
 
@@ -82,46 +83,77 @@ def choose_langid_interactively(lang_dict: dict, lang: Lang) -> int:
 
 
 def post_source(source_path: str, url: str, session: requests.Session) -> Optional[str]:
-    with open(source_path, 'r') as file:
-        source = file.read()
+    with open(source_path, 'r') as f:
+        source = f.read()
 
-    problem = ProblemHTML(session.get(url).text)
-
-    task_screen_name = problem.form.find_task_screen_name()
-    submit_url = problem.form.find_submit_link()
+    problem_html = session.get(url).text
+    problem = ProblemHTML(problem_html)
     lang_dict = problem.form.get_languages_options()
-
-    csrf_token = get_csrf_token(problem.html)
-
     lang = detect_language(source_path)
     langid = choose_langid_interactively(lang_dict, lang)
 
-    post_data = {
-        'data.LanguageId': str(langid),
-        'data.TaskScreenName': task_screen_name,
-        'sourceCode': source,
-        'csrf_token': csrf_token,
-    }
+    api = type('API', (), {'html': None, 'url': None})()
+    window = webview.create_window(
+        'AtCoder Submit', url, js_api=api, width=800, height=600, hidden=False
+    )
 
-    response = session.post(submit_url, data=post_data)
-    if response.status_code != 200:
-        print(
-            f'[red][Error{response.status_code}][/] サーバーエラーの関係で提出に失敗しました.'
-        )
+    def on_loaded():
+        current = window.get_current_url()
+
+        if current != url:
+            dom = window.evaluate_js('document.documentElement.outerHTML')
+            api.html = dom
+            api.url = current
+            window.destroy()
+        else:
+            safe_src = source.replace('\\', '\\\\').replace('`', '\\`')
+            inject_js = f"""
+            (function() {{
+                // Populate ACE editor
+                var ed = ace.edit('editor');
+                ed.setValue(`{safe_src}`, -1);
+                // Sync to hidden textarea
+                document.getElementById('plain-textarea').value = ed.getValue();
+                // Select language
+                var sel = document.querySelector('select[name=\"data.LanguageId\"]');
+                sel.value = '{langid}'; sel.dispatchEvent(new Event('change', {{ bubbles: true }}));
+
+                // CloudFlare Turnstile handling
+                var cf = document.querySelector('input[name=\"cf-turnstile-response\"]');
+                if (cf) {{
+                    // observe token and submit when ready
+                    new MutationObserver(function() {{
+                        if (cf.value) {{ document.getElementById('submit').click(); }}
+                    }}).observe(cf, {{ attributes: true }});
+                }} else {{
+                    // no Turnstile present, submit immediately
+                    document.getElementById('submit').click();
+                }}
+            }})();
+            """
+            window.evaluate_js(inject_js)
+
+    window.events.loaded += on_loaded
+
+    with Status('キャプチャー認証を解決してください', spinner='circleHalves'):
+        webview.start(private_mode=False)
+
+    if 'submit' in api.url:
+        print('[red][-][/red] 提出に失敗しました')
         return None
+    elif 'submissions' in api.url:
+        submission_id = get_submission_id(api.html)
+        if not submission_id:
+            print('[red][-][/red] 提出IDが取得できませんでした')
+            return None
 
-    if response.url == submit_url:  # リダイレクトが発生してないから提出失敗
-        print(
-            f'[red][Error{response.status_code}][/] 提出しましたが,受理されませんでした.'
-        )
+        url = api.url.replace('/me', f'/{submission_id}')
+        print('[green][+][/green] 提出に成功しました！')
+        print(f'提出ID: {submission_id}, URL: {url}')
+        return url + '/status/json'
+    else:
+        print('[red][-][/red] 提出に失敗しました')
         return None
-
-    submission_id = get_submission_id(response.text)
-    print('[green][+][/green] 提出に成功しました！')
-    url = response.url.replace('/me', f'/{submission_id}')
-    print(f'提出ID: {submission_id}, URL: {url}')
-
-    return url + '/status/json'
 
 
 class SubmissionStatus(NamedTuple):
