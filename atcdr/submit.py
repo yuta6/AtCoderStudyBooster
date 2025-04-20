@@ -1,6 +1,5 @@
 import os
 import re
-import threading
 import time
 from typing import Dict, List, NamedTuple, Optional
 
@@ -102,45 +101,42 @@ def post_source(source_path: str, url: str, session: requests.Session) -> Option
         current = window.get_current_url()
 
         if api.injected and current != url:
-            api.html = window.evaluate_js('document.documentElement.outerHTML')
+            dom = window.evaluate_js('document.documentElement.outerHTML')
+            api.html = dom
             api.url = current
             window.destroy()
             return
 
         if not api.injected:
-            safe_source = source.replace('\\', '\\\\').replace('`', '\\`')
-            js_fill = f"""
+            safe_src = source.replace('\\', '\\\\').replace('`', '\\`')
+            inject_js = f"""
             (function() {{
-                var editor = ace.edit("editor");
-                editor.setValue(`{safe_source}`, -1);
-                document.getElementById("plain-textarea").value = editor.getValue();
-                var sel = document.querySelector('select[name="data.LanguageId"]');
+                // Populate ACE editor
+                var ed = ace.edit('editor');
+                ed.setValue(`{safe_src}`, -1);
+                // Sync to hidden textarea
+                document.getElementById('plain-textarea').value = ed.getValue();
+                // Select language
+                var sel = document.querySelector('select[name=\"data.LanguageId\"]');
                 sel.value = '{langid}'; sel.dispatchEvent(new Event('change', {{ bubbles: true }}));
+
+                // CloudFlare Turnstile handling
+                var cf = document.querySelector('input[name=\"cf-turnstile-response\"]');
+                if (cf) {{
+                    // observe token and submit when ready
+                    new MutationObserver(function() {{
+                        if (cf.value) {{ document.getElementById('submit').click(); }}
+                    }}).observe(cf, {{ attributes: true }});
+                }} else {{
+                    // no Turnstile present, submit immediately
+                    document.getElementById('submit').click();
+                }}
             }})();
             """
-            window.evaluate_js(js_fill)
-
-            def poll_and_submit():
-                print('[green][+][/] Cloudflareの認証の待機中...')
-                while True:
-                    try:
-                        token = window.evaluate_js(
-                            "document.querySelector('input[name=\\\"cf-turnstile-response\\\"]')?.value || ''"
-                        )
-                        if token:
-                            window.evaluate_js(
-                                "document.getElementById('submit').click();"
-                            )
-                            return
-                    except Exception:
-                        pass
-                    time.sleep(0.5)
-
-            threading.Thread(target=poll_and_submit, daemon=True).start()
+            window.evaluate_js(inject_js)
             api.injected = True
 
     window.events.loaded += on_loaded
-
     webview.start(private_mode=False)
 
     if 'submit' in api.url:
