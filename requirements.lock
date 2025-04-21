@@ -19,8 +19,8 @@ certifi==2024.7.4
     # via requests
 charset-normalizer==3.3.2
     # via requests
-fire==0.6.0
-    # via atcoderstudybooster
+click==8.1.8
+    # via rich-click
 idna==3.7
     # via requests
 markdown-it-py==3.0.0
@@ -63,13 +63,13 @@ requests==2.32.3
     # via tiktoken
 rich==13.7.1
     # via atcoderstudybooster
+    # via rich-click
+rich-click==1.8.8
+    # via atcoderstudybooster
 six==1.16.0
-    # via fire
     # via markdownify
 soupsieve==2.5
     # via beautifulsoup4
-termcolor==2.4.0
-    # via fire
 tiktoken==0.7.0
     # via atcoderstudybooster
 types-beautifulsoup4==4.12.0.20240511
@@ -80,6 +80,7 @@ types-requests==2.32.0.20240712
     # via atcoderstudybooster
 typing-extensions==4.13.2
     # via pywebview
+    # via rich-click
 urllib3==2.2.2
     # via requests
     # via types-requests

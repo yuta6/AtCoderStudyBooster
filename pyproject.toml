@@ -7,7 +7,6 @@ authors = [
 ]
 dependencies = [
     "beautifulsoup4",
-    "fire",
     "requests",
     "tiktoken",
     "types-requests>=2.32.0.20240712",
@@ -16,6 +15,7 @@ dependencies = [
     "rich>=13.7.1",
     "questionary>=2.0.1",
     "pywebview>=5.4",
+    "rich-click>=1.8.8",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"
