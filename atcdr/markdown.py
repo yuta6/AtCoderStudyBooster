@@ -22,10 +22,11 @@ def save_markdown(html_path: str, lang: str) -> None:
         console.print('[green][+][/green] Markdownファイルを作成しました.')
 
 
-def print_markdown(md_path: str) -> None:
+def print_markdown(html_path: str, lang: str) -> None:
     console = Console()
-    with open(md_path, 'r', encoding='utf-8') as f:
-        md = f.read()
+    with open(html_path, 'r', encoding='utf-8') as f:
+        html = ProblemHTML(f.read())
+    md = html.make_problem_markdown(lang)
     console.print(Markdown(md))
 
 
