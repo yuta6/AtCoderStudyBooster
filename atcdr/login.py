@@ -16,6 +16,7 @@ console = Console()
 
 @click.command(short_help='AtCoderへログイン')
 def login() -> None:
+    """AtCoderへログインします."""
     session = load_session()
     if validate_session(session):
         console.print('[green][+][/] すでにログインしています. ')

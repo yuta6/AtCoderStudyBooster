@@ -9,6 +9,7 @@ ATCODER_LOGIN_URL = 'https://atcoder.jp/login'
 
 @click.command(short_help='AtCoderへログアウト')
 def logout() -> None:
+    """AtCoderからログアウトします."""
     session = load_session()
     if not validate_session(session):
         print('[red][-][/] ログインしていません.')

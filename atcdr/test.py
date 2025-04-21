@@ -428,5 +428,6 @@ def run_test(path_of_code: str) -> None:
 @click.command(short_help='テストを実行')
 @add_file_selector('files', filetypes=COMPILED_LANGUAGES + INTERPRETED_LANGUAGES)
 def test(files):
+    """指定したソースコードをサンプルケースでテストします。"""
     for path in files:
         run_test(path)

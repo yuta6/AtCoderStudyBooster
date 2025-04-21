@@ -251,6 +251,24 @@ def download(
     second: Union[str, None] = None,
     base_path: str = '.',
 ) -> None:
+    """
+    AtCoderの問題をダウンロードします
+
+    download
+    対話形式でダウンロードを開始します。
+
+    download abc012
+        コンテスト abc012 の全問題をダウンロード
+
+    download A 120
+        難易度Aの120番問題をダウンロード
+
+    download 120..130 B
+        ABCの120～130番のB問題をダウンロード
+
+    download 120
+        ABCの120番問題をダウンロード
+    """
     if first is None:
         interactive_download()
         return

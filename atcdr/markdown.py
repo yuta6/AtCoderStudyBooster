@@ -30,12 +30,12 @@ def print_markdown(html_path: str, lang: str) -> None:
     console.print(Markdown(md))
 
 
-@click.command(short_help='HTMLからMarkdownに変換')
+@click.command(short_help='Markdown形式で問題を表示します')
 @add_file_selector('files', filetypes=[Lang.HTML])
 @click.option('--lang', default='ja', help='出力する言語を指定')
 @click.option('--save', is_flag=True, help='変換結果をファイルに保存')
 def markdown(files, lang, save):
-    """HTMLファイルをMarkdownに変換して表示または保存します。"""
+    """Markdown形式で問題を表示します"""
     for path in files:
         if save:
             save_markdown(path, lang)
