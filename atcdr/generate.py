@@ -2,12 +2,13 @@ import json
 import os
 import re
 
+import rich_click as click
 from rich.console import Console
 from rich.panel import Panel
 from rich.syntax import Syntax
 
 from atcdr.test import ResultStatus, TestRunner, create_renderable_test_info
-from atcdr.util.execute import execute_files
+from atcdr.util.fileops import add_file_selector
 from atcdr.util.filetype import (
     FILE_EXTENSIONS,
     Filename,
@@ -181,31 +182,21 @@ Please provide an updated version of the code in {lang2str(lang)}."""
     return
 
 
-def generate(
-    *source: str,
-    lang: str = 'Python',
-    model: str = Model.GPT41_MINI.value,
-    without_test: bool = False,
-    template: bool = False,
-) -> None:
+@click.command(short_help='コードを生成')
+@add_file_selector('files', filetypes=[Lang.HTML])
+@click.option('--lang', default='Python', help='出力するプログラミング言語')
+@click.option('--model', default=Model.GPT41_MINI.value, help='使用するGPTモデル')
+@click.option('--without-test', is_flag=True, help='テストケースを省略して生成')
+@click.option('--template', is_flag=True, help='テンプレートを生成')
+def generate(files, lang, model, without_test, template):
+    """HTMLファイルからコード生成またはテンプレート出力を行います。"""
     la = str2lang(lang)
     model_enum = Model(model)
 
-    if template:
-        execute_files(
-            *source,
-            func=lambda file: generate_template(file, la),
-            target_filetypes=[Lang.HTML],
-        )
-    elif without_test:
-        execute_files(
-            *source,
-            func=lambda file: generate_code(file, la, model_enum),
-            target_filetypes=[Lang.HTML],
-        )
-    else:
-        execute_files(
-            *source,
-            func=lambda file: solve_problem(file, la, model_enum),
-            target_filetypes=[Lang.HTML],
-        )
+    for path in files:
+        if template:
+            generate_template(path, la)
+        elif without_test:
+            generate_code(path, la, model_enum)
+        else:
+            solve_problem(path, la, model_enum)

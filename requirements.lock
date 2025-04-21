@@ -20,7 +20,10 @@ certifi==2024.7.4
 charset-normalizer==3.3.2
     # via requests
 click==8.1.8
+    # via click-aliases
     # via rich-click
+click-aliases==1.0.5
+    # via atcoderstudybooster
 idna==3.7
     # via requests
 markdown-it-py==3.0.0

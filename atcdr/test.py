@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, List, Optional, Tuple, Union
 
+import rich_click as click
 from rich.console import Group, RenderableType
 from rich.live import Live
 from rich.markup import escape
@@ -17,7 +18,7 @@ from rich.syntax import Syntax
 from rich.table import Table
 from rich.text import Text
 
-from atcdr.util.execute import execute_files
+from atcdr.util.fileops import add_file_selector
 from atcdr.util.filetype import (
     COMPILED_LANGUAGES,
     INTERPRETED_LANGUAGES,
@@ -424,9 +425,8 @@ def run_test(path_of_code: str) -> None:
     render_results(test)
 
 
-def test(*args: str) -> None:
-    execute_files(
-        *args,
-        func=run_test,
-        target_filetypes=INTERPRETED_LANGUAGES + COMPILED_LANGUAGES,
-    )
+@click.command(short_help='テストを実行')
+@add_file_selector('files', filetypes=COMPILED_LANGUAGES + INTERPRETED_LANGUAGES)
+def test(files):
+    for path in files:
+        run_test(path)

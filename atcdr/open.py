@@ -3,7 +3,8 @@ from rich.panel import Panel
 from rich.console import Console
 
 from atcdr.util.filetype import Lang
-from atcdr.util.execute import execute_files
+from atcdr.util.fileops import add_file_selector
+import rich_click as click
 from atcdr.util.parse import ProblemHTML
 
 
@@ -39,5 +40,9 @@ def open_html(file: str) -> None:
         )
 
 
-def open_files(*args: str) -> None:
-    execute_files(*args, func=open_html, target_filetypes=[Lang.HTML])
+@click.command(short_help='HTMLファイルを開く')
+@add_file_selector('files', filetypes=[Lang.HTML])
+def open_files(files):
+    """指定したHTMLファイルをブラウザで開きます。"""
+    for path in files:
+        open_html(path)

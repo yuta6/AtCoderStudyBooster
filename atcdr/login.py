@@ -1,6 +1,7 @@
 import threading
 import time
 
+import rich_click as click
 import webview
 from requests import Session
 from rich.console import Console
@@ -13,6 +14,7 @@ ATCODER_HOME_URL = 'https://atcoder.jp/home'
 console = Console()
 
 
+@click.command(short_help='AtCoderへログイン')
 def login() -> None:
     session = load_session()
     if validate_session(session):

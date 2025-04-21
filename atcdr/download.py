@@ -4,6 +4,7 @@ import time
 from typing import Callable, List, Union, cast
 
 import questionary as q
+import rich_click as click
 from rich import print
 from rich.prompt import Prompt
 
@@ -242,9 +243,12 @@ def interactive_download() -> None:
         print('[bold red]無効な選択です[/]')
 
 
+@click.command(short_help='AtCoderの問題をダウンロード')
+@click.argument('first', nargs=1, type=str, required=False)
+@click.argument('second', nargs=1, type=str, required=False)
 def download(
-    first: Union[str, int, None] = None,
-    second: Union[str, int, None] = None,
+    first: Union[str, None] = None,
+    second: Union[str, None] = None,
     base_path: str = '.',
 ) -> None:
     if first is None:

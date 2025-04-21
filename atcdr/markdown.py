@@ -1,9 +1,10 @@
 import os
 
+import rich_click as click
 from rich.console import Console
 from rich.markdown import Markdown
 
-from atcdr.util.execute import execute_files
+from atcdr.util.fileops import add_file_selector
 from atcdr.util.filetype import FILE_EXTENSIONS, Lang
 from atcdr.util.parse import ProblemHTML
 
@@ -28,12 +29,14 @@ def print_markdown(md_path: str) -> None:
     console.print(Markdown(md))
 
 
-def markdown(*args: str, lang: str = 'ja', save: bool = False) -> None:
-    if save:
-        execute_files(
-            *args,
-            func=lambda html_path: save_markdown(html_path, lang),
-            target_filetypes=[Lang.HTML],
-        )
-    else:
-        execute_files(*args, func=print_markdown, target_filetypes=[Lang.MARKDOWN])
+@click.command(short_help='HTMLからMarkdownに変換')
+@add_file_selector('files', filetypes=[Lang.HTML])
+@click.option('--lang', default='ja', help='出力する言語を指定')
+@click.option('--save', is_flag=True, help='変換結果をファイルに保存')
+def markdown(files, lang, save):
+    """HTMLファイルをMarkdownに変換して表示または保存します。"""
+    for path in files:
+        if save:
+            save_markdown(path, lang)
+        else:
+            print_markdown(path, lang)
