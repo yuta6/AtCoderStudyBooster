@@ -73,14 +73,14 @@ def cli():
     install()
 
 
-cli.add_command(test, name='test', aliases=['t'])
-cli.add_command(download, name='download', aliases=['d'])
-cli.add_command(open_files, name='open', aliases=['o'])
-cli.add_command(generate, name='generate', aliases=['g'])
-cli.add_command(markdown, name='markdown', aliases=['md'])
-cli.add_command(submit, name='submit', aliases=['s'])
-cli.add_command(login, name='login')
-cli.add_command(logout, name='logout')
+cli.add_command(test, aliases=['t'])
+cli.add_command(download, aliases=['d'])
+cli.add_command(open_files, 'open', aliases=['o'])
+cli.add_command(generate, aliases=['g'])
+cli.add_command(markdown, aliases=['md'])
+cli.add_command(submit, aliases=['s'])
+cli.add_command(login)
+cli.add_command(logout)
 
 if __name__ == '__main__':
     cli()
