@@ -2,13 +2,20 @@
 
 ## 概要
 
-AtCoderStudyBoosterはAtCoderの学習を加速させるためのCLIツールです。問題をローカルにダウンロードし、テスト、提出、解答の作成をサポートするツールです。Pythonが入っていることが必須です。Pythonが入っている環境なら、`pip install AtCoderStudyBooster`でインストールできます。
+🚧 このプロジェクトはまだ実験段階です。日々のAtCoder学習に役立つ機能を順次追加しています。
+
+AtCoderStudyBoosterはAtCoderの学習を加速させるためのCLIツールです。問題をローカルにダウンロードし、テスト、提出、解答の作成をサポートするツールです。Pythonが入っていることが必須です。Pythonが入っている環境なら、`pip install AtCoderStudyBooster`でインストールできます。(Python3.8以上が必要です)
+
+キャプチャ認証が導入されたあとでも、CLIからほぼ自動でログイン＆提出できます。ただしキャプチャを解くために、GUI環境が必要になる場合があります。
 
 このツールは以下のプロジェクトに強く影響を受けています。
 [online-judge-tools](https://github.com/online-judge-tools)
 [atcoder-cli](https://github.com/Tatamo/atcoder-cli)
 
+
 ## 利用ケース
+
+まずは`download`コマンドを利用して問題をローカルにダウンロードしてみましょう。
 
 ### B問題の練習したい場合
 
