@@ -7,7 +7,6 @@ authors = [
 ]
 dependencies = [
     "beautifulsoup4",
-    "fire",
     "requests",
     "tiktoken",
     "types-requests>=2.32.0.20240712",
@@ -16,6 +15,8 @@ dependencies = [
     "rich>=13.7.1",
     "questionary>=2.0.1",
     "pywebview>=5.4",
+    "rich-click>=1.8.8",
+    "click-aliases>=1.0.5",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"
@@ -23,7 +24,7 @@ license = { text = "MIT" }
 urls = { Homepage = "https://github.com/yuta6/AtCoderStudyBooster" }
 
 [project.scripts]
-"atcdr" = "atcdr.main:main"
+"atcdr" = "atcdr.cli:cli"
 
 [build-system]
 requires = ["hatchling==1.26.3"]

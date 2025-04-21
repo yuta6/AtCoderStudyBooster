@@ -5,6 +5,7 @@ from typing import Dict, List, NamedTuple, Optional
 
 import questionary as q
 import requests
+import rich_click as click
 import webview
 from bs4 import BeautifulSoup as bs
 from rich import print
@@ -19,7 +20,7 @@ from atcdr.test import (
     TestRunner,
     create_renderable_test_info,
 )
-from atcdr.util.execute import execute_files
+from atcdr.util.fileops import add_file_selector
 from atcdr.util.filetype import (
     COMPILED_LANGUAGES,
     INTERPRETED_LANGUAGES,
@@ -289,9 +290,13 @@ def submit_source(path: str, no_test: bool, no_feedback: bool) -> None:
         print_status_submission(api_status_link, path, session)
 
 
-def submit(*args: str, no_test: bool = False, no_feedback: bool = False) -> None:
-    execute_files(
-        *args,
-        func=lambda path: submit_source(path, no_test, no_feedback),
-        target_filetypes=COMPILED_LANGUAGES + INTERPRETED_LANGUAGES,
-    )
+@click.command(short_help='ソースを提出')
+@add_file_selector('files', filetypes=COMPILED_LANGUAGES + INTERPRETED_LANGUAGES)
+@click.option('--no-test', is_flag=True, default=False, help='テストをスキップ')
+@click.option(
+    '--no-feedback', is_flag=True, default=False, help='フィードバックをスキップ'
+)
+def submit(files, no_test, no_feedback):
+    """指定したファイルをAtCoderへ提出します。"""
+    for path in files:
+        submit_source(path, no_test, no_feedback)
