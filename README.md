@@ -4,7 +4,11 @@
 
 🚧 このプロジェクトはまだ実験段階です。日々のAtCoder学習に役立つ機能を順次追加しています。
 
-AtCoderStudyBoosterはAtCoderの学習を加速させるためのCLIツールです。問題をローカルにダウンロードし、テスト、提出、解答の作成をサポートするツールです。Pythonが入っていることが必須です。Pythonが入っている環境なら、`pip install AtCoderStudyBooster`でインストールできます。(Python3.8以上が必要です)
+AtCoderStudyBoosterはAtCoderの学習を加速させるためのCLIツールです。問題をローカルにダウンロードし、テスト、提出、解答の作成をサポートするツールです。Pythonが入っていることが必須です。Pythonが入っている環境なら、
+
+`pip install AtCoderStudyBooster`
+
+でインストールできます。(Python3.8以上が必要です)
 
 キャプチャ認証が導入されたあとでも、CLIから半自動でログイン＆提出できます。ただしキャプチャをGUIから人力で解く必要があります。キャプチャー認証をバイパスするものではありません。
 
