@@ -292,6 +292,15 @@ def download(
                     例 atcdr -d A 120..130  : A問題の120から130をダウンロードます
                 """
             )
+        second_args: Union[List[int], List[Diff]] = [
+            Diff('A'),
+            Diff('B'),
+            Diff('C'),
+            Diff('D'),
+            Diff('E'),
+            Diff('F'),
+            Diff('G'),
+        ]
     else:
         second_args = convert_arg(str(second))
 
