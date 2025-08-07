@@ -1,3 +1,4 @@
+import time
 from dataclasses import dataclass
 
 import requests
@@ -12,9 +13,14 @@ class Contest:
         self.name = name
 
         self.url = f'https://atcoder.jp/contests/{name}/tasks'
-        response = session.get(self.url)
-        if not response.ok:
-            raise ValueError(f'コンテストの {name} のURL見つかりません')
+        retry_attempts = 2
+        retry_wait = 0.30
+        for _ in range(retry_attempts):
+            response = session.get(self.url)
+            if response.ok:
+                break
+            else:
+                time.sleep(retry_wait)
 
         self.problems = [
             Problem(url=url, contest=self, label=label)
