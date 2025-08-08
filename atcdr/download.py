@@ -1,22 +1,24 @@
-import os
 import re
 import time
-from typing import Callable, List, Union, cast
+from itertools import groupby, product
+from pathlib import Path
+from typing import List, Tuple, Union, cast
 
 import questionary as q
+import requests
 import rich_click as click
 from rich import print
 from rich.prompt import Prompt
 
 from atcdr.util.filetype import FILE_EXTENSIONS, Lang
 from atcdr.util.parse import ProblemHTML
-from atcdr.util.problem import Contest, Diff, Problem
+from atcdr.util.problem import Contest, Problem
 from atcdr.util.session import load_session
 
 
 class Downloader:
-    def __init__(self) -> None:
-        self.session = load_session()
+    def __init__(self, session: requests.Session) -> None:
+        self.session = session
 
     def get(self, problem: Problem) -> ProblemHTML:
         session = self.session
@@ -54,111 +56,49 @@ class Downloader:
         return ProblemHTML('')
 
 
-def mkdir(path: str) -> None:
-    if not os.path.exists(path):
-        os.makedirs(path)
-        print(f'[bold green][+][/bold green] フォルダー: {path} を作成しました')
-
-
-class GenerateMode:
-    @staticmethod
-    def gene_path_on_diff(base: str, problem: Problem) -> str:
-        return (
-            os.path.join(base, problem.label, f'{problem.contest.number:03}')
-            if problem.contest.number
-            else os.path.join(base, problem.label, problem.contest.contest)
-        )
-
-    @staticmethod
-    def gene_path_on_num(base: str, problem: Problem) -> str:
-        return (
-            os.path.join(base, f'{problem.contest.number:03}', problem.label)
-            if problem.contest.number
-            else os.path.join(base, problem.contest.contest, problem.label)
-        )
-
-
 def title_to_filename(title: str) -> str:
     title = re.sub(r'[\\/*?:"<>| !@#$%^&()+=\[\]{};,\']', '', title)
     title = re.sub(r'.*?-', '', title)
     return title
 
 
-def generate_problem_directory(
-    base_path: str, problems: List[Problem], gene_path: Callable[[str, Problem], str]
-) -> None:
-    downloader = Downloader()
-    for problem in problems:
-        problem_content = downloader.get(problem)
-        if not problem_content:
-            print(f'[bold red][Error][/] {problem}の保存に失敗しました')
-            continue
+def save_problem(problem: Problem, path: Path, session: requests.Session) -> None:
+    """1つの問題を保存"""
+    downloader = Downloader(session)
+    problem_content = downloader.get(problem)
 
-        dir_path = gene_path(base_path, problem)
-        mkdir(dir_path)
+    if not problem_content:
+        print(f'[bold red][Error][/] {problem}の保存に失敗しました')
+        return
 
-        problem_content.repair_me()
+    # ディレクトリ作成（pathをそのまま使用）
+    path.mkdir(parents=True, exist_ok=True)
 
-        title = problem_content.title or problem.label
-        title = title_to_filename(title)
+    problem_content.repair_me()
+    title = title_to_filename(problem_content.title or problem.label)
 
-        html_path = os.path.join(dir_path, title + FILE_EXTENSIONS[Lang.HTML])
-        with open(html_path, 'w', encoding='utf-8') as file:
-            file.write(problem_content.html)
-        print(f'[bold green][+][/bold green] ファイルを保存しました :{html_path}')
+    # HTMLファイル保存
+    html_path = path / (title + FILE_EXTENSIONS[Lang.HTML])
+    html_path.write_text(problem_content.html, encoding='utf-8')
+    print(f'[bold green][+][/bold green] ファイルを保存しました: {html_path}')
 
-        md = problem_content.make_problem_markdown('ja')
-        md_path = os.path.join(dir_path, title + FILE_EXTENSIONS[Lang.MARKDOWN])
-        with open(md_path, 'w', encoding='utf-8') as file:
-            file.write(md)
-        print(f'[bold green][+][/bold green] ファイルを保存しました :{md_path}')
+    # Markdownファイル保存
+    md = problem_content.make_problem_markdown('ja')
+    md_path = path / (title + FILE_EXTENSIONS[Lang.MARKDOWN])
+    md_path.write_text(md, encoding='utf-8')
+    print(f'[bold green][+][/bold green] ファイルを保存しました: {md_path}')
 
 
-def parse_range(match: re.Match) -> List[int]:
-    start, end = map(int, match.groups())
-    start, end = min(start, end), max(start, end)
-    return list(range(start, end + 1))
-
-
-def parse_diff_range(match: re.Match) -> List[Diff]:
-    start, end = match.groups()
-    start_index = min(ord(start.upper()), ord(end.upper()))
-    end_index = max(ord(start.upper()), ord(end.upper()))
-    return [Diff(chr(i)) for i in range(start_index, end_index + 1)]
-
-
-def convert_arg(arg: str) -> Union[List[int], List[Diff]]:
-    if arg.isdigit():
-        return [int(arg)]
-    elif arg.isalpha() and len(arg) == 1:
-        return [Diff(arg)]
-    elif match := re.match(r'^(\d+)\.\.(\d+)$', arg):
-        return parse_range(match)
-    elif match := re.match(r'^([A-Z])\.\.([A-Z])$', arg, re.IGNORECASE):
-        return parse_diff_range(match)
-    else:
-        raise ValueError(f'{arg}は認識できません')
-
-
-def are_all_integers(args: Union[List[int], List[Diff]]) -> bool:
-    return all(isinstance(arg, int) for arg in args)
-
-
-def are_all_diffs(args: Union[List[int], List[Diff]]) -> bool:
-    return all(isinstance(arg, Diff) for arg in args)
-
-
-def interactive_download() -> None:
+def interactive_download(session) -> None:
     CONTEST = '1. コンテストの問題を解きたい'
-    PRACTICE = '2. 特定の難易度の問題を集中的に練習したい'
-    ONE_FILE = '3. 1問だけダウンロードする'
-    END = '4. 終了する'
+    ONE_FILE = '2. 1問だけダウンロードする'
+    END = '3. 終了する'
 
     choice = q.select(
         message='AtCoderの問題のHTMLファイルをダウンロードします',
         qmark='',
         pointer='❯❯❯',
-        choices=[CONTEST, PRACTICE, ONE_FILE, END],
+        choices=[CONTEST, ONE_FILE, END],
         instruction='\n 十字キーで移動,[enter]で実行',
         style=q.Style(
             [
@@ -172,70 +112,40 @@ def interactive_download() -> None:
     ).ask()
 
     if choice == CONTEST:
-        name = Prompt.ask(
-            'コンテスト名を入力してください (例: abc012, abs, typical90)',
-        )
-
-        problems = Contest(name=name).problems(session=load_session())
-        if not problems:
-            print(f'[red][Error][/red] コンテスト名が間違っています: {name}')
-            return
-
-        generate_problem_directory('.', problems, GenerateMode.gene_path_on_num)
-
-    elif choice == PRACTICE:
-        difficulty = Prompt.ask(
-            '難易度を入力してください (例: A)',
-        )
+        name = Prompt.ask('コンテスト名を入力してください (例: abc012, abs, typical90)')
         try:
-            difficulty = Diff(difficulty)
-        except KeyError:
-            raise ValueError('入力された難易度が認識できません')
-        number_str = Prompt.ask(
-            'コンテスト番号または範囲を入力してください (例: 120..130)'
-        )
-        if number_str.isdigit():
-            contest_numbers = [int(number_str)]
-        elif match := re.match(r'^\d+\.\.\d+$', number_str):
-            contest_numbers = parse_range(match)
-        else:
-            raise ValueError('数字の範囲の形式が間違っています')
-
-        problems = [
-            Problem(contest=Contest('abc', number), difficulty=difficulty)
-            for number in contest_numbers
-        ]
-
-        generate_problem_directory('.', problems, GenerateMode.gene_path_on_diff)
+            contest = Contest(name, session)
+            for problem in contest.problems:
+                save_problem(problem, Path(contest.name) / problem.label, session)
+        except ValueError as e:
+            print(f'[red][Error][/red] {e}')
 
     elif choice == ONE_FILE:
-        name = Prompt.ask(
-            'コンテスト名を入力してください (例: abc012, abs, typical90)',
-        )
-
-        problems = Contest(name=name).problems(session=load_session())
-
-        problem = q.select(
-            message='どの問題をダウンロードしますか?',
-            qmark='',
-            pointer='❯❯❯',
-            choices=[
-                q.Choice(title=f'{problem.label:10} | {problem.url}', value=problem)
-                for problem in problems
-            ],
-            instruction='\n 十字キーで移動,[enter]で実行',
-            style=q.Style(
-                [
-                    ('question', 'fg:#2196F3 bold'),
-                    ('answer', 'fg:#FFB300 bold'),
-                    ('pointer', 'fg:#FFB300 bold'),
-                    ('highlighted', 'fg:#FFB300 bold'),
-                    ('selected', 'fg:#FFB300 bold'),
-                ]
-            ),
-        ).ask()
-
-        generate_problem_directory('.', [problem], GenerateMode.gene_path_on_num)
+        name = Prompt.ask('コンテスト名を入力してください (例: abc012, abs, typical90)')
+        try:
+            contest = Contest(name, session)
+            problem = q.select(
+                message='どの問題をダウンロードしますか?',
+                qmark='',
+                pointer='❯❯❯',
+                choices=[
+                    q.Choice(title=f'{p.label:10} | {p.url}', value=p)
+                    for p in contest.problems
+                ],
+                instruction='\n 十字キーで移動,[enter]で実行',
+                style=q.Style(
+                    [
+                        ('question', 'fg:#2196F3 bold'),
+                        ('answer', 'fg:#FFB300 bold'),
+                        ('pointer', 'fg:#FFB300 bold'),
+                        ('highlighted', 'fg:#FFB300 bold'),
+                        ('selected', 'fg:#FFB300 bold'),
+                    ]
+                ),
+            ).ask()
+            save_problem(problem, Path(contest.name) / problem.label, session)
+        except ValueError as e:
+            print(f'[red][Error][/red] {e}')
 
     elif choice == END:
         print('[bold red]終了します[/]')
@@ -243,89 +153,70 @@ def interactive_download() -> None:
         print('[bold red]無効な選択です[/]')
 
 
-@click.command(short_help='AtCoderの問題をダウンロード')
-@click.argument('first', nargs=1, type=str, required=False)
-@click.argument('second', nargs=1, type=str, required=False)
-def download(
-    first: Union[str, None] = None,
-    second: Union[str, None] = None,
-    base_path: str = '.',
-) -> None:
+def plan_download(
+    args: List[str], session: requests.Session
+) -> List[Tuple[Problem, Path]]:
+    def classify(arg):
+        try:
+            return Contest(arg, session)
+        except ValueError:
+            label = arg
+            return label
+
+    parsed: List[Union['Contest', str]] = list(map(classify, args))
+
+    groups: List[List[Union['Contest', str]]] = [
+        list(group)
+        for _, group in groupby(parsed, key=lambda x: isinstance(x, Contest))
+    ]
+
+    if len(groups) == 1:
+        if all(isinstance(x, Contest) for x in groups[0]):
+            contests = cast(List[Contest], groups[0])
+            return [
+                (problem, Path(contest.name) / problem.label)
+                for contest in contests
+                for problem in contest.problems
+            ]
+        else:
+            raise ValueError('コンテスト名を指定してください')
+    elif len(groups) == 2:
+        result = []
+        for i, j in product(groups[0], groups[1]):
+            if isinstance(i, Contest) and isinstance(j, str):
+                # Contest × Label
+                for problem in i.problems:
+                    if problem.label == j:
+                        result.append((problem, Path(i.name) / j))
+            elif isinstance(i, str) and isinstance(j, Contest):
+                # Label × Contest
+                for problem in j.problems:
+                    if problem.label == i:
+                        result.append((problem, Path(i) / j.name))
+        return result
+    else:
+        raise ValueError('ダウンロードの引数が正しくありません')
+
+
+@click.command(short_help='AtCoder の問題をダウンロード')
+@click.argument('args', nargs=-1)
+def download(args: List[str]) -> None:
     """
-    AtCoderの問題をダウンロードします
-
-    download
-    対話形式でダウンロードを開始します。
-
-    download abc012
-        コンテスト abc012 の全問題をダウンロード
-
-    download A 120
-        難易度Aの120番問題をダウンロード
-
-    download 120..130 B
-        ABCの120～130番のB問題をダウンロード
-
-    download 120
-        ABCの120番問題をダウンロード
+    例:
+        download abc{001..012} {A..C}
+        download {A..E} abc{001..012}
     """
-    if first is None:
-        interactive_download()
+    session = load_session()
+
+    if not args:
+        interactive_download(session)
         return
 
-    if second is None:
-        try:
-            first_args = convert_arg(str(first))
-        except ValueError:
-            first = str(first)
-            problems = Contest(name=first).problems(session=load_session())
-            if not problems:
-                print(f'[red][Error][red/] コンテスト名が間違っています: {first}')
-                return
-            generate_problem_directory('.', problems, GenerateMode.gene_path_on_num)
-            return
+    try:
+        plan = plan_download(args, session)
+    except ValueError as e:
+        print(f'[red][Error][/red] {e}')
+        return
 
-        if are_all_diffs(first_args):
-            raise ValueError(
-                """難易度だけでなく, 問題番号も指定してコマンドを実行してください.
-                    例 atcdr -d A 120  : A問題の120をダウンロードます
-                    例 atcdr -d A 120..130  : A問題の120から130をダウンロードます
-                """
-            )
-        second_args: Union[List[int], List[Diff]] = [
-            Diff('A'),
-            Diff('B'),
-            Diff('C'),
-            Diff('D'),
-            Diff('E'),
-            Diff('F'),
-            Diff('G'),
-        ]
-    else:
-        second_args = convert_arg(str(second))
-
-    if are_all_integers(first_args) and are_all_diffs(second_args):
-        first_args_int = cast(List[int], first_args)
-        second_args_diff = cast(List[Diff], second_args)
-        problems = [
-            Problem(Contest('abc', number), difficulty=diff)
-            for number in first_args_int
-            for diff in second_args_diff
-        ]
-        generate_problem_directory(base_path, problems, GenerateMode.gene_path_on_num)
-    elif are_all_diffs(first_args) and are_all_integers(second_args):
-        first_args_diff = cast(List[Diff], first_args)
-        second_args_int = cast(List[int], second_args)
-        problems = [
-            Problem(Contest('abc', number), difficulty=diff)
-            for diff in first_args_diff
-            for number in second_args_int
-        ]
-        generate_problem_directory(base_path, problems, GenerateMode.gene_path_on_diff)
-    else:
-        raise ValueError(
-            """次のような形式で問題を指定してください
-                例 atcdr -d A 120..130  : A問題の120から130をダウンロードします
-                例 atcdr -d 120         : ABCのコンテストの問題をダウンロードします
-            """
-        )
+    for prob, path in plan:
+        save_problem(prob, path, session)
