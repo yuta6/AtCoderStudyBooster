@@ -204,7 +204,7 @@ def download(args: List[str]) -> None:
     """
     例:
         download abc{001..012} {A..C}
-        download abc{001..012} {A..C} {A..E} abc{001..012}
+        download {A..E} abc{001..012}
     """
     session = load_session()
 
