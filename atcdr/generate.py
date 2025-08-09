@@ -17,6 +17,7 @@ from atcdr.util.filetype import (
     str2lang,
 )
 from atcdr.util.gpt import ChatGPT, Model, set_api_key
+from atcdr.util.i18n import _
 from atcdr.util.parse import ProblemHTML
 
 
@@ -58,21 +59,19 @@ def generate_code(file: Filename, lang: Lang, model: Model) -> None:
         system_prompt=f"""You are an excellent programmer. You solve problems in competitive programming.When a user provides you with a problem from a programming contest called AtCoder, including the Problem,Constraints, Input, Output, Input Example, and Output Example, please carefully consider these and solve the problem.Make sure that your output code block contains no more than two blocks. Pay close attention to the Input, Input Example, Output, and Output Example.Create the solution in {lang2str(lang)}.""",
         model=model,
     )
-    with console.status(f'コード生成中 (by {gpt.model.value})'):
+    with console.status(_('generating_code', gpt.model.value)):
         reply = gpt.tell(md)
 
     code = get_code_from_gpt_output(reply)
-    console.print('[green][+][/green] コードの生成に成功しました. ')
-    console.rule(f'{gpt.model.value}による{lang2str(lang)}コード')
+    console.print('[green][+][/green] ' + _('code_generation_success'))
+    console.rule(_('code_by_model', lang2str(lang), gpt.model.value))
     console.print(Syntax(code=code, lexer=lang2str(lang)))
 
     saved_filename = (
         os.path.splitext(file)[0] + f'_by_{gpt.model.value}' + FILE_EXTENSIONS[lang]
     )
     with open(saved_filename, 'w') as f:
-        console.print(
-            f'[green][+][/green] {gpt.model.value} の出力したコードを保存しました：{f.name}'
-        )
+        console.print('[green][+][/green] ' + _('code_saved', gpt.model.value, f.name))
         f.write(code)
 
 
@@ -98,15 +97,13 @@ The user will provide a problem from a programming contest called AtCoder. This 
 
 You must not solve the problem. Please faithfully reproduce the variable names defined in the problem.
     """
-    with console.status(f'{lang2str(lang)}のテンプレートを生成しています...'):
+    with console.status(_('generating_template', lang2str(lang))):
         reply = gpt.tell(md + propmpt)
     code = get_code_from_gpt_output(reply)
 
     savaed_filename = os.path.splitext(file)[0] + FILE_EXTENSIONS[lang]
     with open(savaed_filename, 'x') as f:
-        console.print(
-            f'[green][+][/green] テンプレートファイルを作成 :{savaed_filename}'
-        )
+        console.print('[green][+][/green] ' + _('template_created', savaed_filename))
         f.write(code)
 
 
@@ -128,7 +125,7 @@ def solve_problem(file: Filename, lang: Lang, model: Model) -> None:
     file_without_ext = os.path.splitext(file)[0]
 
     for i in range(1, 4):
-        with console.status(f'{i}回目のコード生成中 (by {gpt.model.value})'):
+        with console.status(_('nth_code_generation', i, gpt.model.value)):
             if i == 1:
                 test_report = ''
                 reply = gpt.tell(md)
@@ -137,7 +134,7 @@ def solve_problem(file: Filename, lang: Lang, model: Model) -> None:
                 {test_report}
 Please provide an updated version of the code in {lang2str(lang)}."""
                 console.print(
-                    f'[green][+][/] 次のプロンプトを{gpt.model.value}に与え,再生成します'
+                    '[green][+][/] ' + _('regenerating_with_prompt', gpt.model.value)
                 )
                 console.print(Panel(prompt))
                 reply = gpt.tell(prompt)
@@ -151,11 +148,11 @@ Please provide an updated version of the code in {lang2str(lang)}."""
             + FILE_EXTENSIONS[lang]
         )
         with open(saved_filename, 'w') as f:
-            console.print(f'[green][+][/] コードの生成に成功しました！：{f.name}')
+            console.print('[green][+][/] ' + _('code_generation_success_file', f.name))
             f.write(code)
 
         with console.status(
-            f'{gpt.model.value}が生成したコードをテスト中', spinner='circleHalves'
+            _('testing_generated_code', gpt.model.value), spinner='circleHalves'
         ):
             test = TestRunner(saved_filename, labeled_cases)
             test_report, is_ac = render_result_for_GPT(test)
@@ -163,10 +160,10 @@ Please provide an updated version of the code in {lang2str(lang)}."""
         console.print(create_renderable_test_info(test.info))
 
         if is_ac:
-            console.print('[green][+][/] コードのテストに成功!')
+            console.print('[green][+][/] ' + _('test_success'))
             break
         else:
-            console.print('[red][-][/] コードのテストに失敗!')
+            console.print('[red][-][/] ' + _('test_failed'))
 
     with open(
         'log_'
@@ -175,19 +172,17 @@ Please provide an updated version of the code in {lang2str(lang)}."""
         + FILE_EXTENSIONS[Lang.JSON],
         'w',
     ) as f:
-        console.print(
-            f'[green][+][/] {gpt.model.value}の出力のログを保存しました：{f.name}'
-        )
+        console.print('[green][+][/] ' + _('log_saved', gpt.model.value, f.name))
         f.write(json.dumps(gpt.messages, indent=2))
     return
 
 
-@click.command(short_help='コードを生成')
+@click.command(short_help=_('cmd_generate'), help=_('cmd_generate'))
 @add_file_selector('files', filetypes=[Lang.HTML])
-@click.option('--lang', default='Python', help='出力するプログラミング言語')
-@click.option('--model', default=Model.GPT41_MINI.value, help='使用するGPTモデル')
-@click.option('--without-test', is_flag=True, help='テストケースを省略して生成')
-@click.option('--template', is_flag=True, help='テンプレートを生成')
+@click.option('--lang', default='Python', help=_('opt_output_lang'))
+@click.option('--model', default=Model.GPT41_MINI.value, help=_('opt_model'))
+@click.option('--without-test', is_flag=True, help=_('opt_without_test'))
+@click.option('--template', is_flag=True, help=_('opt_template'))
 def generate(files, lang, model, without_test, template):
     """HTMLファイルからコード生成またはテンプレート出力を行います。"""
     la = str2lang(lang)

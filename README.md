@@ -1,116 +1,90 @@
 # AtCoderStudyBooster
 
-## 概要
+[日本語版 README はこちら](README.ja.md)
 
-🚧 このプロジェクトはまだ実験段階です。日々のAtCoder学習に役立つ機能を順次追加しています。
+## Overview
 
-AtCoderStudyBoosterはAtCoderの学習を加速させるためのCLIツールです。問題をローカルにダウンロードし、テスト、提出、解答の作成をサポートするツールです。Pythonが入っていることが必須です。Pythonが入っている環境なら、
+🚧 This project is still in experimental stage. We are continuously adding features to help with daily AtCoder practice.
+
+AtCoderStudyBooster is a CLI tool designed to accelerate your AtCoder learning journey. It supports downloading problems locally, testing, submitting, and generating solutions. Python installation is required. If you have Python installed, you can install this tool with:
 
 ```sh
 pip install AtCoderStudyBooster
 ```
 
-でインストールできます。(Python3.8以上が必要です)
+(Python 3.8 or higher is required)
 
-キャプチャ認証が導入されたあとでも、CLIから半自動でログイン＆提出できます。ただしキャプチャをGUIから人力で解く必要があります。キャプチャー認証をバイパスするものではありません。
+Even after CAPTCHA authentication was introduced, you can still login and submit semi-automatically from CLI. However, you need to manually solve the CAPTCHA through GUI. This tool does not bypass CAPTCHA authentication.
 
-このツールは以下のプロジェクトに強く影響を受けています。
+This project is strongly influenced by:
 - [online-judge-tools](https://github.com/online-judge-tools)
 - [atcoder-cli](https://github.com/Tatamo/atcoder-cli)
 
-## 利用ケース
+## Use Cases
 
-まずは`download`コマンドを利用して問題をローカルにダウンロードしてみましょう。
+Let's start by using the `download` command to download problems locally.
 
-### 1. 特定のコンテストをダウンロードする
+### 1. Download a Specific Contest
 
-1つのコンテストの問題をダウンロードしたい場合の例です。
+Examples for downloading problems from a single contest.
 
-#### ABC350の全問題をダウンロード
+#### Download all problems from ABC350
 ```sh
 ❯ atcdr download abc350
 ```
 
-#### ABC350のA〜D問題をダウンロード
+#### Download problems A-D from ABC350
 ```sh
 ❯ atcdr download abc350 {A..D}
 ```
 
-#### 競プロ典型90問のダウンロード
+#### Download Typical 90 Problems
 ```sh
 ❯ atcdr download typical90
 ```
 
-### 2. 複数のコンテストを一括でダウンロードする
+### 2. Batch Download Multiple Contests
 
-複数のコンテストを一度にダウンロードしたい場合の例です。bashのブレース展開を活用します。
+Examples for downloading multiple contests at once. Utilizes bash brace expansion.
 
-#### ABC001〜ABC010までの全問題
+#### All problems from ABC001 to ABC010
 ```sh
 ❯ atcdr download abc{001..010}
 ```
 
-#### ABC320〜ABC325までのA〜C問題
+#### Specific problems from multiple contests
 ```sh
-❯ atcdr download abc{320..325} {A..C}
+❯ atcdr download abc{301..310} {A..C}
 ```
 
-次のようなフォルダー構造が生成されます：
+### 3. Download Specific Difficulty Problems
 
-```
-abc320/
-├── A/
-│   ├── Problem.html
-│   └── Problem.md
-├── B/
-│   ├── Problem.html
-│   └── Problem.md
-└── C/
-    ├── Problem.html
-    └── Problem.md
-abc321/
-├── A/
-...（以下同様）
-```
+Examples for collecting problems of the same difficulty across different contests.
 
-### 3. 特定の問題（A問題、B問題など）を集中的に演習したい場合
-
-特定の難易度の問題だけを集めて練習したい場合は、**問題ラベルを先に指定**すると便利です。
-
-#### B問題だけを集中的に練習
+#### Download all A problems from ABC301-310
 ```sh
-❯ atcdr download B abc{250..260}
+❯ atcdr download A abc{301..310}
 ```
 
-問題ラベルを先に指定すると、問題ラベルごとにフォルダが作成され、その中にコンテスト名のフォルダが配置されます。
-
-```
-B/
-├── abc250/
-│   ├── Problem.html
-│   └── Problem.md
-├── abc251/
-│   ├── Problem.html
-│   └── Problem.md
-├── abc252/
-│   ├── Problem.html
-│   └── Problem.md
-└── ...（以下同様）
-```
-
-A問題とB問題を集める場合（`{A,B} abc{300..302}`）：
-
+This creates the following directory structure:
 ```
 A/
-├── abc300/
-│   ├── Problem.html
-│   └── Problem.md
 ├── abc301/
 │   ├── Problem.html
 │   └── Problem.md
-└── abc302/
-    ├── Problem.html
-    └── Problem.md
+├── abc302/
+│   ├── Problem.html
+│   └── Problem.md
+└── ...
+```
+
+#### Download all B problems from ABC300-302
+```sh
+❯ atcdr download B abc{300..302}
+```
+
+Creates:
+```
 B/
 ├── abc300/
 │   ├── Problem.html
@@ -122,117 +96,134 @@ B/
     ├── Problem.html
     └── Problem.md
 ```
-このディレクトリ構造により、同じ難易度の問題を一箇所に集めて効率的に演習できます。
+This directory structure allows you to efficiently practice problems of the same difficulty level in one place.
 
-### 問題を解く
+### Solving Problems
 
-MarkdownファイルあるいはHTMLファイルをVS CodeのHTML Preview, Markdown Previewで開くと問題を確認できます。VS Codeで開くと左側にテキストエディターを表示して、右側で問題をみながら問題に取り組めます。
+You can view problems by opening Markdown or HTML files with VS Code's HTML Preview or Markdown Preview. In VS Code, you can display the text editor on the left and work on problems while viewing them on the right.
 
-![demo画像](./.images/demo1.png)
+![demo image](./.images/demo1.png)
 
-### サンプルをローカルでテストする
+### Testing Samples Locally
 
-問題をダウンロードしたフォルダーに移動します。
+Navigate to the folder where you downloaded the problem.
 
 ```sh
 ❯ cd abc224/B
 ```
 
-移動したフォルダーで解答ファイルを作成後、testコマンドを実行すると、サンプルケースをテストします。
+After creating your solution file in the folder, run the test command to test against sample cases.
 
 ```sh
 ~/.../abc224/B
 ❯ atcdr t
 ```
 
-![demo画像](./.images/demo2.png)
+![demo image](./.images/demo2.png)
 
-WAの場合は以下のような表示になります。
+For Wrong Answer (WA) cases, the display looks like this:
 
-![demo画像](./.images/demo3.png)
+![demo image](./.images/demo3.png)
 
-### 提出する
+### Submitting Solutions
 
 ```sh
 ~/.../abc224/B
 ❯ atcdr s
 ```
 
-を実行すると、提出することができます。提出にはAtCoderのサイトへのログインが必要です。
+Running this command will submit your solution. Login to AtCoder website is required for submission.
 
-### 解答をGPTで生成する
+### Generating Solutions with GPT
 
 ```sh
 ~/.../abc224/B
 ❯ atcdr g
 ```
 
-で解答をGPTで生成します。Chat GPTのAPIキーが必要です。さらに、生成されたファイルはサンプルケースが自動でテストされ、**テストをパスしなかった場合、テスト結果がGPTにフィードバックされ解答が再生成**されます。
+This command generates a solution using OpenAI's GPT model. An OpenAI API key is required. On first run, you'll be prompted to input your API key.
 
-GPTとプログラムとのやり取りのログはJSONファイルで保存されます。
+### Login to AtCoder
 
-## 解答生成機能generateコマンドに関する注意点
+```sh
+❯ atcdr login
+```
 
-[AtCoder生成AI対策ルール](https://info.atcoder.jp/entry/llm-rules-ja)によるとAtCoder Beginner Contest（以下、ABCとする）および AtCoder Regular Contest (Div. 2) においてに問題文を生成AIに直接与えることは禁止されています。ただし、このルールは過去問を練習している際には適用されません。該当のコンテスト中にこの機能を使用しないでください。
+Logs into AtCoder. A browser window will open for CAPTCHA verification. After solving the CAPTCHA, login completes automatically.
 
-## その他の機能
-
-### markdownコマンド
-
-完全なCLI環境方向けのコマンドです。
+### Create Markdown File
 
 ```sh
 ~/.../abc224/B
-❯ atcdr md
+❯ atcdr m
 ```
 
-を実行すると、問題をプリントします。
+Creates a Markdown file from the HTML file in the current directory. This command is automatically executed during `atcdr download`.
 
-![demo画像](./.images/demo4.png)
-
-### 複数のファイルを一度にテスト
+### Open Problem in Browser
 
 ```sh
 ~/.../abc224/B
-❯ atcdr t *.py
+❯ atcdr o
 ```
 
-でフォルダー内にあるすべてのPythonファイルを一度にテストします。
+Opens the problem page in your browser. Convenient for checking detailed problem statements or constraints.
+
+## Commands
+
+| Command | Alias | Description |
+|---------|-------|-------------|
+| `atcdr download` | `atcdr d` | Download problems |
+| `atcdr test` | `atcdr t` | Test with sample cases |
+| `atcdr submit` | `atcdr s` | Submit solution |
+| `atcdr generate` | `atcdr g` | Generate solution with GPT |
+| `atcdr login` | - | Login to AtCoder |
+| `atcdr logout` | - | Logout from AtCoder |
+| `atcdr markdown` | `atcdr m` | Create Markdown file |
+| `atcdr open` | `atcdr o` | Open problem in browser |
+
+## GPT Code Generation
+
+`atcdr generate` command uses GPT to generate solutions. It requires an OpenAI API key.
+
+### Generate Solution with Test
+
+By default, generated code is tested against sample cases:
 
 ```sh
 ~/.../abc224/B
-❯ atcdr t mon.py mon.c mon.cpp
+❯ atcdr generate
 ```
 
-フォルダー内に複数ファイルある場合は、インタラクティブに選択できます。
+### Specify Language
+
+Specify the programming language for generation. Default is Python.
 
 ```sh
 ~/.../abc224/B
-❯ atcdr t
+❯ atcdr generate --lang cpp
 ```
+
+Supported languages:
+- `python` (default)
+- `cpp`
+- `java`
+- `rust`
+
+### Specify GPT Model
 
 ```sh
 ~/.../abc224/B
-❯ atcdr t
-複数のファイルが見つかりました.ファイルを選択してください:
- 十字キーで移動, [enter]で実行
-❯❯❯ mon.py
-    mon.c
-    mon.cpp
+❯ atcdr generate --gpt gpt-4o
 ```
 
-### プログラミング言語を指定してコードを生成
+Available models:
+- `gpt-4o-mini` (default) - Fast and cost-effective
+- `gpt-4o` - More accurate but slower
 
-`--lang`オプションを使うと、生成したいプログラミング言語を指定できます。
+### Generate Code Only Without Testing
 
-```sh
-~/.../abc224/B
-❯ atcdr generate --lang rust
-```
-
-### テストをせずにコードのみ生成
-
-デフォルトで`atcdr generate`コマンドは生成されたコードをテストしますが、テストせずにコードのみ生成できます。
+To generate code without testing:
 
 ```sh
 ~/.../abc224/B

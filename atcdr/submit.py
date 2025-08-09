@@ -29,6 +29,7 @@ from atcdr.util.filetype import (
     lang2str,
     str2lang,
 )
+from atcdr.util.i18n import _
 from atcdr.util.parse import ProblemHTML, get_submission_id
 from atcdr.util.session import load_session, validate_session
 
@@ -61,14 +62,14 @@ def choose_langid_interactively(lang_dict: dict, lang: Lang) -> int:
     options = [*filter(lambda option: option.lang == lang, options)]
 
     langid = q.select(
-        message=f'以下の一覧から{lang2str(lang)}の実装/コンパイラーを選択してください',
+        message=_('select_implementation', lang2str(lang)),
         qmark='',
         pointer='❯❯❯',
         choices=[
             q.Choice(title=f'{option.display_name}', value=option.id)
             for option in options
         ],
-        instruction='\n 十字キーで移動,[enter]で実行',
+        instruction='\n ' + _('navigate_with_arrows'),
         style=q.Style(
             [
                 ('question', 'fg:#2196F3 bold'),
@@ -136,24 +137,24 @@ def post_source(source_path: str, url: str, session: requests.Session) -> Option
 
     window.events.loaded += on_loaded
 
-    with Status('キャプチャー認証を解決してください', spinner='circleHalves'):
+    with Status(_('solve_captcha'), spinner='circleHalves'):
         webview.start(private_mode=False)
 
     if 'submit' in api.url:
-        print('[red][-][/red] 提出に失敗しました')
+        print('[red][-][/red] ' + _('submission_failed'))
         return None
     elif 'submissions' in api.url:
         submission_id = get_submission_id(api.html)
         if not submission_id:
-            print('[red][-][/red] 提出IDが取得できませんでした')
+            print('[red][-][/red] ' + _('submission_id_not_found'))
             return None
 
         url = api.url.replace('/me', f'/{submission_id}')
-        print('[green][+][/green] 提出に成功しました！')
-        print(f'提出ID: {submission_id}, URL: {url}')
+        print('[green][+][/green] ' + _('submission_success'))
+        print(_('submission_details', submission_id, url))
         return url + '/status/json'
     else:
-        print('[red][-][/red] 提出に失敗しました')
+        print('[red][-][/red] ' + _('submission_failed'))
         return None
 
 
@@ -211,19 +212,19 @@ def print_status_submission(
         BarColumn(),
     )
 
-    with Status('ジャッジ待機中', spinner='dots'):
-        for _ in range(15):
+    with Status(_('waiting_judge'), spinner='dots'):
+        for i in range(15):
             time.sleep(1)
             data = session.get(api_url).json()
             status = parse_submission_status_json(data)
             if status.total or status.current:
                 break
         else:
-            print('[red][-][/] 15秒待ってもジャッジが開始されませんでした')
+            print('[red][-][/] ' + _('judge_timeout'))
             return
 
     total = status.total or 0
-    task_id = progress.add_task(description='ジャッジ中', total=total)
+    task_id = progress.add_task(description=_('judging'), total=total)
 
     test_info = TestInformation(
         lang=detect_language(path),
@@ -248,24 +249,22 @@ def print_status_submission(
         test_info.summary = status.status
         test_info.results = [ResultStatus.AC] * total
 
-        progress.update(task_id, description='ジャッジ完了', completed=total)
+        progress.update(task_id, description=_('judge_completed'), completed=total)
         live.update(create_renderable_test_info(test_info, progress))
 
 
 def submit_source(path: str, no_test: bool, no_feedback: bool) -> None:
     session = load_session()
     if not validate_session(session):
-        print('[red][-][/] ログインしていません.')
+        print('[red][-][/] ' + _('not_logged_in'))
         login()
         if not validate_session(session):
-            print('[red][-][/] ログインに失敗しました.')
+            print('[red][-][/] ' + _('login_failed'))
             return
 
     html_files = [file for file in os.listdir('.') if file.endswith('.html')]
     if not html_files:
-        print(
-            '問題のファイルが見つかりません \n問題のファイルが存在するディレクトリーに移動してから実行してください'
-        )
+        print(_('problem_file_not_found'))
         return
 
     with open(html_files[0], 'r') as file:
@@ -279,7 +278,7 @@ def submit_source(path: str, no_test: bool, no_feedback: bool) -> None:
     print(create_renderable_test_info(test.info))
 
     if test.info.summary != ResultStatus.AC and not no_test:
-        print('[red][-][/] サンプルケースが AC していないので提出できません')
+        print('[red][-][/] ' + _('sample_not_ac'))
         return
 
     api_status_link = post_source(path, url, session)
@@ -290,12 +289,10 @@ def submit_source(path: str, no_test: bool, no_feedback: bool) -> None:
         print_status_submission(api_status_link, path, session)
 
 
-@click.command(short_help='ソースを提出')
+@click.command(short_help=_('cmd_submit'), help=_('cmd_submit'))
 @add_file_selector('files', filetypes=COMPILED_LANGUAGES + INTERPRETED_LANGUAGES)
-@click.option('--no-test', is_flag=True, default=False, help='テストをスキップ')
-@click.option(
-    '--no-feedback', is_flag=True, default=False, help='フィードバックをスキップ'
-)
+@click.option('--no-test', is_flag=True, default=False, help=_('opt_no_test'))
+@click.option('--no-feedback', is_flag=True, default=False, help=_('opt_no_feedback'))
 def submit(files, no_test, no_feedback):
     """指定したファイルをAtCoderへ提出します。"""
     for path in files:

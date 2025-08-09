@@ -3,19 +3,20 @@ from dataclasses import dataclass
 
 import requests
 
+from atcdr.util.i18n import _
 from atcdr.util.parse import get_problem_urls_from_tasks
 
 
 class Contest:
     def __init__(self, name: str, session: requests.Session):
         if not name:
-            raise ValueError('nameは必須です')
+            raise ValueError(_('name_required'))
         self.name = name
 
         self.url = f'https://atcoder.jp/contests/{name}/tasks'
         retry_attempts = 2
         retry_wait = 0.30
-        for _ in range(retry_attempts):
+        for attempt in range(retry_attempts):
             response = session.get(self.url)
             if response.ok:
                 break

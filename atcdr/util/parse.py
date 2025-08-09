@@ -5,6 +5,8 @@ from bs4 import BeautifulSoup as bs
 from bs4 import Tag
 from markdownify import MarkdownConverter
 
+from atcdr.util.i18n import _
+
 
 class HTML:
     def __init__(self, html: str) -> None:
@@ -87,7 +89,7 @@ class ProblemHTML(HTML):
         elif lang == 'en':
             lang_class = 'lang-en'
         else:
-            raise ValueError(f'言語は {lang} に対応していません')
+            raise ValueError(_('language_not_supported', lang))
         span = task_statement.find('span', {'class': lang_class})
         return span
 
@@ -146,7 +148,7 @@ class ProblemHTML(HTML):
     def form(self) -> ProblemForm:
         form = self.soup.find('form', class_='form-code-submit')
         if not isinstance(form, Tag):
-            raise ValueError('問題ページにフォームが存在しません')
+            raise ValueError(_('form_not_found'))
         form.__class__ = ProblemForm
         return form
 
@@ -178,12 +180,12 @@ def get_problem_urls_from_tasks(html_content: str) -> list[tuple[str, str]]:
     soup = bs(html_content, 'html.parser')
     table = soup.find('table')
     if not table:
-        raise ValueError('問題のテーブルが見つかりませんでした.')
+        raise ValueError(_('problem_table_not_found'))
 
     # tbodyタグを見つける
     tbody = table.find('tbody')
     if not tbody:
-        raise ValueError('tbodyが見つかりませんでした.')
+        raise ValueError(_('tbody_not_found'))
 
     # tbody内の1列目のaタグのリンクと中身を取得
     links = []

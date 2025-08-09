@@ -26,6 +26,7 @@ from atcdr.util.filetype import (
     detect_language,
     lang2str,
 )
+from atcdr.util.i18n import _
 from atcdr.util.parse import ProblemHTML
 
 
@@ -159,7 +160,7 @@ class TestRunner:
             ]
             self.exe = None
         else:
-            raise ValueError(f'{lang}の適切な言語のランナーが見つかりませんでした.')
+            raise ValueError(_('runner_not_found', lang))
 
         return self
 
@@ -300,9 +301,9 @@ def create_renderable_test_info(
     status_text = STATUS_TEXT_MAP[test_info.summary]
 
     header_text = Text.assemble(
-        Text.from_markup(f'[cyan]{test_info.sourcename}[/]のテスト \n'),
+        Text.from_markup(f'[cyan]{test_info.sourcename}[/]' + _('test_of', '') + '\n'),
         Text.from_markup(
-            f'[italic #0f0f0f]コンパイルにかかった時間: [not italic cyan]{test_info.compile_time}[/] ms[/]\n'
+            '[italic #0f0f0f]' + _('compile_time', test_info.compile_time) + '\n'
         )
         if test_info.compile_time
         else Text(''),
@@ -319,7 +320,7 @@ def create_renderable_test_info(
 
     if test_info.compiler_message:
         rule = Rule(
-            title='コンパイラーのメッセージ',
+            title=_('compiler_message'),
             style=COLOR_MAP[ResultStatus.CE],
         )
         components.append(rule)
@@ -342,27 +343,29 @@ def create_renderable_test_result(
 
     # 以下の部分は if-else ブロックの外に移動
     status_header = Text.assemble(
-        'ステータス ',
+        _('status'),
         STATUS_TEXT_MAP[test_result.result.passed],  # status_text をここに追加
     )
 
     execution_time_text = None
     if test_result.result.executed_time is not None:
         execution_time_text = Text.from_markup(
-            f'実行時間   [cyan]{test_result.result.executed_time}[/cyan] ms'
+            _('execution_time', test_result.result.executed_time)
         )
 
     table = Table(show_header=True, header_style='bold')
-    table.add_column('入力', style='cyan', min_width=10)
+    table.add_column(_('input'), style='cyan', min_width=10)
 
     if test_result.result.passed != ResultStatus.AC:
         table.add_column(
-            '出力',
+            _('output'),
             style=COLOR_MAP[test_result.result.passed],
             min_width=10,
             overflow='fold',
         )
-        table.add_column('正解の出力', style=COLOR_MAP[ResultStatus.AC], min_width=10)
+        table.add_column(
+            _('expected_output'), style=COLOR_MAP[ResultStatus.AC], min_width=10
+        )
         table.add_row(
             escape(test_result.testcase.input),
             escape(test_result.result.output),
@@ -370,7 +373,7 @@ def create_renderable_test_result(
         )
     else:
         table.add_column(
-            '出力', style=COLOR_MAP[test_result.result.passed], min_width=10
+            _('output'), style=COLOR_MAP[test_result.result.passed], min_width=10
         )
         table.add_row(
             escape(test_result.testcase.input), escape(test_result.result.output)
@@ -393,7 +396,9 @@ def render_results(test: TestRunner) -> None:
         SpinnerColumn(style='white', spinner_name='simpleDots'),
         BarColumn(),
     )
-    task_id = progress.add_task(description='テスト進行中', total=test.info.case_number)
+    task_id = progress.add_task(
+        description=_('test_in_progress'), total=test.info.case_number
+    )
 
     current_display = [create_renderable_test_info(test.info, progress)]
 
@@ -404,7 +409,9 @@ def render_results(test: TestRunner) -> None:
             current_display.insert(-1, (create_renderable_test_result(i, result)))
             live.update(Group(*current_display))
 
-        progress.update(task_id, description='テスト完了')  # 完了メッセージに更新
+        progress.update(
+            task_id, description=_('test_completed')
+        )  # 完了メッセージに更新
         current_display[-1] = create_renderable_test_info(test.info, progress)
         live.update(Group(*current_display))
 
@@ -412,9 +419,7 @@ def render_results(test: TestRunner) -> None:
 def run_test(path_of_code: str) -> None:
     html_paths = [f for f in os.listdir('.') if f.endswith('.html')]
     if not html_paths:
-        print(
-            '問題のファイルが見つかりません。\n問題のファイルが存在するディレクトリーに移動してから実行してください。'
-        )
+        print(_('problem_file_not_found'))
         return
 
     with open(html_paths[0], 'r') as file:
@@ -425,7 +430,7 @@ def run_test(path_of_code: str) -> None:
     render_results(test)
 
 
-@click.command(short_help='テストを実行')
+@click.command(short_help=_('cmd_test'), help=_('cmd_test'))
 @add_file_selector('files', filetypes=COMPILED_LANGUAGES + INTERPRETED_LANGUAGES)
 def test(files):
     """指定したソースコードをサンプルケースでテストします。"""

@@ -9,6 +9,7 @@ from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.table import Table
 
+from atcdr.util.i18n import _
 from atcdr.util.parse import get_username_from_html
 
 COOKIE_PATH = os.path.join(os.path.expanduser('~'), '.cache', 'atcdr', 'session.json')
@@ -19,18 +20,18 @@ def print_rich_response(
     response: requests.Response, body_range: tuple = (0, 24)
 ) -> None:
     # レスポンス情報をテーブル形式で表示
-    info_table = Table(title='レスポンス情報')
-    info_table.add_column('項目', justify='left', style='cyan', no_wrap=True)
-    info_table.add_column('内容', justify='left', style='magenta')
+    info_table = Table(title=_('response_info'))
+    info_table.add_column(_('item'), justify='left', style='cyan', no_wrap=True)
+    info_table.add_column(_('content'), justify='left', style='magenta')
     info_table.add_row('URL', response.url)
-    info_table.add_row('ステータスコード', str(response.status_code))
-    info_table.add_row('理由', response.reason)
+    info_table.add_row(_('status_code'), str(response.status_code))
+    info_table.add_row(_('reason'), response.reason)
     info_table = Align.center(info_table)
 
     # ヘッダー情報をテーブル形式で表示
-    header_table = Table(title='レスポンスヘッダー')
-    header_table.add_column('キー', style='cyan', no_wrap=True)
-    header_table.add_column('値', style='magenta', overflow='fold')
+    header_table = Table(title=_('response_headers'))
+    header_table.add_column(_('key'), style='cyan', no_wrap=True)
+    header_table.add_column(_('value'), style='magenta', overflow='fold')
     for key, value in response.headers.items():
         value = unquote(value)
         header_table.add_row(key, value)
@@ -39,9 +40,9 @@ def print_rich_response(
     # リダイレクトの歴史
     redirect_table = None
     if response.history:
-        redirect_table = Table(title='リダイレクト履歴')
-        redirect_table.add_column('ステップ', style='cyan')
-        redirect_table.add_column('ステータスコード', style='magenta')
+        redirect_table = Table(title=_('redirect_history'))
+        redirect_table.add_column(_('step'), style='cyan')
+        redirect_table.add_column(_('status_code'), style='magenta')
         redirect_table.add_column('URL', style='green')
         for i, redirect_response in enumerate(response.history):
             redirect_table.add_row(
@@ -80,7 +81,7 @@ def print_rich_response(
             if response.text
             else None
         )
-    body_panel = Panel(body, title='レスポンスボディ') if body else None
+    body_panel = Panel(body, title=_('response_body')) if body else None
 
     print(info_table)
     print(header_table)
@@ -102,7 +103,7 @@ def load_session() -> requests.Session:
             response = session.get(ATCODER_URL)
             username = get_username_from_html(response.text)
             if username:
-                print(f'こんにちは！[cyan]{username}[/] さん')
+                print(_('hello_user', username))
             return session
         else:
             return requests.Session()
@@ -131,7 +132,7 @@ def validate_session(session: requests.Session) -> bool:
                 return False
         return False
     except requests.RequestException as e:
-        print(f'[red][-][/] セッションチェック中にエラーが発生しました: {e}')
+        print('[red][-][/] ' + _('session_check_error', e))
         return False
 
 
