@@ -6,6 +6,8 @@
 
 🚧 This project is still in experimental stage. We are continuously adding features to help with daily AtCoder practice.
 
+![demo image](./.images/demo0.gif)
+
 AtCoderStudyBooster is a CLI tool designed to accelerate your AtCoder learning journey. It supports downloading problems locally, testing, submitting, and generating solutions. Python installation is required. If you have Python installed, you can install this tool with:
 
 ```sh
@@ -102,8 +104,6 @@ This directory structure allows you to efficiently practice problems of the same
 
 You can view problems by opening Markdown or HTML files with VS Code's HTML Preview or Markdown Preview. In VS Code, you can display the text editor on the left and work on problems while viewing them on the right.
 
-![demo image](./.images/demo1.png)
-
 ### Testing Samples Locally
 
 Navigate to the folder where you downloaded the problem.
@@ -119,11 +119,7 @@ After creating your solution file in the folder, run the test command to test ag
 ❯ atcdr t
 ```
 
-![demo image](./.images/demo2.png)
-
 For Wrong Answer (WA) cases, the display looks like this:
-
-![demo image](./.images/demo3.png)
 
 ### Submitting Solutions
 
