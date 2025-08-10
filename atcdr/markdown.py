@@ -6,6 +6,7 @@ from rich.markdown import Markdown
 
 from atcdr.util.fileops import add_file_selector
 from atcdr.util.filetype import FILE_EXTENSIONS, Lang
+from atcdr.util.i18n import _, i18n
 from atcdr.util.parse import ProblemHTML
 
 
@@ -19,7 +20,7 @@ def save_markdown(html_path: str, lang: str) -> None:
 
     with open(md_path, 'w', encoding='utf-8') as f:
         f.write(md)
-        console.print('[green][+][/green] Markdownファイルを作成しました.')
+        console.print('[green][+][/green] ' + _('markdown_created'))
 
 
 def print_markdown(html_path: str, lang: str) -> None:
@@ -30,12 +31,15 @@ def print_markdown(html_path: str, lang: str) -> None:
     console.print(Markdown(md))
 
 
-@click.command(short_help='Markdown形式で問題を表示します')
+@click.command(short_help=_('cmd_markdown'), help=_('cmd_markdown'))
 @add_file_selector('files', filetypes=[Lang.HTML])
-@click.option('--lang', default='ja', help='出力する言語を指定')
-@click.option('--save', is_flag=True, help='変換結果をファイルに保存')
+@click.option('--lang', default=None, help=_('opt_lang'))
+@click.option('--save', is_flag=True, help=_('opt_save'))
 def markdown(files, lang, save):
-    """Markdown形式で問題を表示します"""
+    """問題をMarkdown形式で表示します"""
+    # langが指定されていない場合は現在のロケールを使用
+    if lang is None:
+        lang = i18n.language
     for path in files:
         if save:
             save_markdown(path, lang)

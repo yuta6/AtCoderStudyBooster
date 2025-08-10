@@ -6,6 +6,7 @@ import webview
 from requests import Session
 from rich.console import Console
 
+from atcdr.util.i18n import _
 from atcdr.util.session import load_session, save_session, validate_session
 
 ATCODER_LOGIN_URL = 'https://atcoder.jp/login'
@@ -14,17 +15,17 @@ ATCODER_HOME_URL = 'https://atcoder.jp/home'
 console = Console()
 
 
-@click.command(short_help='AtCoderへログイン')
+@click.command(short_help=_('cmd_login'), help=_('cmd_login'))
 def login() -> None:
     """AtCoderへログインします."""
     session = load_session()
     if validate_session(session):
-        console.print('[green][+][/] すでにログインしています. ')
+        console.print('[green][+][/] ' + _('already_logged_in'))
         return
 
     # Prompt in CLI
-    username = console.input('[cyan]ユーザー名: [/]').strip()
-    password = console.input('[cyan]パスワード: [/]').strip()
+    username = console.input('[cyan]' + _('username') + '[/]').strip()
+    password = console.input('[cyan]' + _('password') + '[/]').strip()
 
     window = webview.create_window('AtCoder Login', ATCODER_LOGIN_URL, hidden=False)
 
@@ -36,16 +37,14 @@ def login() -> None:
         window.evaluate_js(js_fill)
 
         def poll_and_submit():
-            with console.status(
-                'キャプチャー認証を解決してください', spinner='circleHalves'
-            ):
+            with console.status(_('solve_captcha'), spinner='circleHalves'):
                 while True:
                     try:
                         token = window.evaluate_js(
                             'document.querySelector(\'input[name=\\"cf-turnstile-response\\"]\').value'
                         )
                         if token:
-                            console.print('[green][+][/] ログインします')
+                            console.print('[green][+][/] ' + _('logging_in'))
                             window.evaluate_js(
                                 "document.getElementById('submit').click();"
                             )
@@ -55,7 +54,7 @@ def login() -> None:
 
                     time.sleep(0.5)
 
-            with console.status('ログインの結果の待機中...', spinner='circleHalves'):
+            with console.status(_('waiting_login_result'), spinner='circleHalves'):
                 while True:
                     try:
                         current_url = window.get_current_url()
@@ -63,7 +62,7 @@ def login() -> None:
                         current_url = None
 
                     if current_url and current_url.startswith(ATCODER_HOME_URL):
-                        console.print('[green][+][/] ログイン成功!')
+                        console.print('[green][+][/] ' + _('login_success'))
 
                         session = Session()
                         session = move_cookies_from_webview_to_session(window, session)
@@ -82,7 +81,7 @@ def login() -> None:
                         err = ''
 
                     if err:
-                        console.print(f'[red][-][/] エラー: {err}')
+                        console.print('[red][-][/] ' + _('error', err))
                         session = Session()
                         session = move_cookies_from_webview_to_session(window, session)
                         save_session(session)

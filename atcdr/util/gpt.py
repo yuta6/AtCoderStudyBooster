@@ -4,6 +4,8 @@ from typing import Dict, List, Optional
 
 import requests
 
+from atcdr.util.i18n import _
+
 
 class Model(Enum):
     GPT4O = 'gpt-4o'
@@ -24,27 +26,23 @@ def set_api_key() -> Optional[str]:
     if api_key and validate_api_key(api_key):
         return api_key
     elif api_key:
-        print('環境変数に設定されているAPIキーの検証に失敗しました ')
+        print(_('api_key_validation_failed'))
     else:
         pass
 
-    api_key = input(
-        'https://platform.openai.com/api-keys からchatGPTのAPIキーを入手しましょう。\nAPIキー入力してください: '
-    )
+    api_key = input(_('get_api_key_prompt'))
     if validate_api_key(api_key):
-        print('APIキーのテストに成功しました。')
-        print('以下, ~/.zshrcにAPIキーを保存しますか? [y/n]')
+        print(_('api_key_test_success'))
+        print(_('save_api_key_prompt'))
         if input() == 'y':
             zshrc_path = os.path.expanduser('~/.zshrc')
             with open(zshrc_path, 'a') as f:
                 f.write(f'export OPENAI_API_KEY={api_key}\n')
-            print(
-                f'APIキーを {zshrc_path} に保存しました。次回シェル起動時に読み込まれます。'
-            )
+            print(_('api_key_saved', zshrc_path))
         os.environ['OPENAI_API_KEY'] = api_key
         return api_key
     else:
-        print('コード生成にはAPIキーが必要です。')
+        print(_('api_key_required'))
         return None
 
 
@@ -59,7 +57,7 @@ def validate_api_key(api_key: str) -> bool:
     if response.status_code == 200:
         return True
     else:
-        print('APIキーの検証に失敗しました。')
+        print(_('api_key_validation_error'))
         return False
 
 
@@ -106,7 +104,7 @@ class ChatGPT:
         try:
             reply = responsej['choices'][0]['message']['content']
         except KeyError:
-            print('Error:レスポンスの形式が正しくありません. \n' + str(responsej))
+            print(_('response_format_error') + str(responsej))
             return 'Error: Unable to retrieve response.'
 
         self.messages.append({'role': 'assistant', 'content': reply})

@@ -7,6 +7,7 @@ import questionary as q
 import rich_click as click
 
 from atcdr.util.filetype import FILE_EXTENSIONS, Lang
+from atcdr.util.i18n import _
 
 
 def collect_files(
@@ -41,9 +42,9 @@ def collect_files(
 
 def select_files_interactively(files: List[str]) -> List[str]:
     target_file = q.select(
-        message='複数のファイルが見つかりました.ファイルを選択してください:',
+        message=_('multiple_files_found'),
         choices=[q.Choice(title=file, value=file) for file in files],
-        instruction='\n 十字キーで移動, [enter]で実行',
+        instruction='\n ' + _('navigate_with_arrows'),
         pointer='❯',
         qmark='',
         style=q.Style(
@@ -78,7 +79,7 @@ def add_file_selector(
             # 2) ファイル収集 (非再帰固定)
             files = collect_files(patterns, tuple(exts), recursive=False)
             if not files:
-                click.echo('対象ファイルが見つかりません。')
+                click.echo(_('target_file_not_found'))
                 ctx.exit(1)
 
             # 3) 候補が1つなら即実行
@@ -89,7 +90,7 @@ def add_file_selector(
             if not patterns:
                 selected = select_files_interactively(files)
                 if not selected:
-                    click.echo('ファイルが選択されませんでした。')
+                    click.echo(_('file_not_selected'))
                     ctx.exit(1)
                 selected_list = [selected]
                 return ctx.invoke(f, **{arg_name: selected_list}, **kwargs)
