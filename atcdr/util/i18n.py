@@ -301,6 +301,11 @@ class I18n:
         if lang in self._messages:
             self._lang = lang
 
+    @property
+    def language(self) -> str:
+        """現在の言語を取得する"""
+        return self._lang or 'en'
+
 
 # シングルトンインスタンス
 i18n = I18n()

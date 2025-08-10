@@ -11,7 +11,7 @@ from rich import print
 from rich.prompt import Prompt
 
 from atcdr.util.filetype import FILE_EXTENSIONS, Lang
-from atcdr.util.i18n import _
+from atcdr.util.i18n import _, i18n
 from atcdr.util.parse import ProblemHTML
 from atcdr.util.problem import Contest, Problem
 from atcdr.util.session import load_session
@@ -89,7 +89,7 @@ def save_problem(problem: Problem, path: Path, session: requests.Session) -> Non
     print('[bold green][+][/bold green] ' + _('file_saved', html_path))
 
     # Markdownファイル保存
-    md = problem_content.make_problem_markdown('ja')
+    md = problem_content.make_problem_markdown(i18n.language)
     md_path = path / (title + FILE_EXTENSIONS[Lang.MARKDOWN])
     md_path.write_text(md, encoding='utf-8')
     print('[bold green][+][/bold green] ' + _('file_saved', md_path))
@@ -208,9 +208,8 @@ def plan_download(
 @click.argument('args', nargs=-1)
 def download(args: List[str]) -> None:
     """
-    例:
-        download abc{001..012} {A..C}
-        download {A..E} abc{001..012}
+    download abc{001..012} {A..C}
+    download {A..E} abc{001..012}
     """
     session = load_session()
 
