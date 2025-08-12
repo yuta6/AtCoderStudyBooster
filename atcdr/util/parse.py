@@ -110,7 +110,7 @@ class ProblemHTML(HTML):
     def load_labeled_testcase(self) -> List:
         from atcdr.test import LabeledTestCase, TestCase
 
-        problem_part = self.abstract_problem_part(i18n.language)
+        problem_part = self.abstract_problem_part('en')
         if problem_part is None:
             return []
 
