@@ -8,8 +8,8 @@ from rich.table import Table
 from rich.traceback import install
 from rich_click import RichGroup
 
+from atcdr.ai import ai
 from atcdr.download import download
-from atcdr.generate import generate
 from atcdr.login import login
 from atcdr.logout import logout
 from atcdr.markdown import markdown
@@ -76,7 +76,7 @@ def cli():
 cli.add_command(test, aliases=['t'])
 cli.add_command(download, aliases=['d'])
 cli.add_command(open_files, 'open', aliases=['o'])
-cli.add_command(generate, aliases=['g'])
+cli.add_command(ai)
 cli.add_command(markdown, aliases=['md'])
 cli.add_command(submit, aliases=['s'])
 cli.add_command(login)
