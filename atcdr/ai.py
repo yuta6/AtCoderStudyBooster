@@ -1,11 +1,13 @@
 import json
 import random
+import time
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 import rich_click as click
 from openai import BadRequestError, OpenAI
 from rich.console import Console
+from rich.live import Live
 from rich.markup import escape
 from rich.panel import Panel
 from rich.syntax import Syntax
@@ -227,16 +229,90 @@ Once you run test_example_case, the exact code you tested will already be saved 
             raise
 
     while True:
-        with console.status(
-            f'[bold blue]Thinking... (turn {turn})[/bold blue]', spinner='dots'
-        ):
-            resp = call_model()
-            console.print(resp)
+        start_time = time.time()
+        with Live(
+            Panel(
+                f'[bold blue]🤔 Thinking... (turn {turn})[/bold blue]\n[dim]Elapsed: 0.0s[/dim]',
+                border_style='blue',
+            ),
+            console=console,
+            refresh_per_second=10,
+        ) as live:
 
-        if getattr(resp, 'output_text', None):
+            def update_timer():
+                elapsed = time.time() - start_time
+                live.update(
+                    Panel(
+                        f'[bold blue]🤔 Thinking... (turn {turn})[/bold blue]\n[dim]Elapsed: {elapsed:.1f}s[/dim]',
+                        border_style='blue',
+                    )
+                )
+
+            import threading
+
+            resp = None
+            error = None
+
+            def model_call():
+                nonlocal resp, error
+                try:
+                    resp = call_model()
+                except Exception as e:
+                    error = e
+
+            thread = threading.Thread(target=model_call)
+            thread.start()
+
+            while thread.is_alive():
+                update_timer()
+                time.sleep(0.1)
+
+            thread.join()
+
+            if error:
+                raise error
+
+            elapsed = time.time() - start_time
+            live.update(
+                Panel(
+                    f'[bold green]✓ Completed thinking (turn {turn})[/bold green]\n[dim]Time taken: {elapsed:.1f}s[/dim]',
+                    border_style='green',
+                )
+            )
+
+        # Display token usage
+        if resp and hasattr(resp, 'usage') and resp.usage:
+            usage = resp.usage
+            input_tokens = getattr(usage, 'input_tokens', 0)
+            output_tokens = getattr(usage, 'output_tokens', 0)
+            total_tokens = getattr(usage, 'total_tokens', 0)
+
+            # Check for cached tokens
+            cached_tokens = 0
+            if hasattr(usage, 'input_tokens_details'):
+                details = usage.input_tokens_details
+                if hasattr(details, 'cached_tokens'):
+                    cached_tokens = details.cached_tokens
+
+            # Check for reasoning tokens
+            reasoning_tokens = 0
+            if hasattr(usage, 'output_tokens_details'):
+                details = usage.output_tokens_details
+                if hasattr(details, 'reasoning_tokens'):
+                    reasoning_tokens = details.reasoning_tokens
+
+            token_msg = f'[dim]Tokens - Input: {input_tokens:,}'
+            if cached_tokens > 0:
+                token_msg += f' (cached: {cached_tokens:,})'
+            token_msg += f' | Output: {output_tokens:,}'
+            if reasoning_tokens > 0:
+                token_msg += f' (reasoning: {reasoning_tokens:,})'
+            token_msg += f' | Total: {total_tokens:,}[/dim]'
+            console.print(token_msg)
+
+        if resp and getattr(resp, 'output_text', None):
             assistant_text.append(resp.output_text)
 
-            # Try to detect if it's code and add syntax highlighting
             output_content = str(resp.output_text).strip()
             if any(
                 keyword in output_content
@@ -275,20 +351,23 @@ Once you run test_example_case, the exact code you tested will already be saved 
                     )
                 )
 
-        context_msgs += resp.output
+        if resp and hasattr(resp, 'output'):
+            context_msgs += resp.output
 
-        # function_call を収集
-        calls: List[dict] = []
-        for o in resp.output:
-            if getattr(o, 'type', '') == 'function_call':
-                try:
-                    args = json.loads(o.arguments or '{}')
-                except Exception:
-                    args = {}
-                call_id = getattr(o, 'call_id', None) or getattr(
-                    o, 'id'
-                )  # ★ ここがポイント
-                calls.append({'name': o.name, 'call_id': call_id, 'args': args})
+            # function_call を収集
+            calls: List[dict] = []
+            for o in resp.output:
+                if getattr(o, 'type', '') == 'function_call':
+                    try:
+                        args = json.loads(o.arguments or '{}')
+                    except Exception:
+                        args = {}
+                    call_id = getattr(o, 'call_id', None) or getattr(
+                        o, 'id'
+                    )  # ★ ここがポイント
+                    calls.append({'name': o.name, 'call_id': call_id, 'args': args})
+        else:
+            calls = []
 
         if not calls:
             console.print(
