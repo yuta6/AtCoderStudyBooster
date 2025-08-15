@@ -71,7 +71,7 @@ class ProblemForm(Tag):
 
 class ProblemHTML(HTML):
     def repair_me(self, lang: Optional[str] = None) -> None:
-        html = self.html.replace('//img.atcoder.jp', 'https://img.atcoder.jp')
+        html = self.html
         # 言語パラメータまたはi18nの設定に基づいて言語を決定
         target_lang = lang or i18n.language
         if target_lang == 'ja':
